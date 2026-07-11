@@ -270,8 +270,7 @@ if(!window.storage){
    ตั้งค่า Supabase — ใส่ 2 ค่านี้เพื่อเปิดโหมด "ล็อกอินจริง + ข้อมูลกลางแชร์กัน"
    (เว้นว่างไว้ = ใช้แบบเก็บในเครื่องเหมือนเดิม)
    ============================================================ */
-const SUPABASE_URL='';       // เช่น https://abcdxyz.supabase.co
-const SUPABASE_ANON_KEY='';  // anon public key จาก Supabase → Settings → API
+const SUPABASE_URL='sb_publishable_xOfoiPez2WntFNu6n_Jc6g_CChgqYUA';       SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlY2t5eXhidG11eG5vY3h6cWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3Njc5MDIsImV4cCI6MjA5OTM0MzkwMn0.LG7NFv7q7SLdcLjWZ69f3Yoe1gZHKEs2nIujaqJbp0M';  // anon public key จาก Supabase → Settings → API
 let supa=null;
 const SUPA_ON=!!(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient);
 if(SUPA_ON){
