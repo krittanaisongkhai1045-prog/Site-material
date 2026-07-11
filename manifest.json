@@ -1,0 +1,15 @@
+{
+  "name": "ระบบวัสดุไซต์งาน",
+  "short_name": "วัสดุไซต์งาน",
+  "description": "ติดตามวัสดุก่อสร้าง สโตร์กลาง ใบเบิก รายงาน แยกอาคาร",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F3EE",
+  "theme_color": "#1B1E22",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

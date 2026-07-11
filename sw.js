@@ -1,0 +1,23 @@
+/* Service worker: cache หน้าแอปไว้ให้เปิดได้เร็ว/ออฟไลน์เบื้องต้น
+   (ฟีเจอร์ที่ต้องต่อเน็ต เช่น Supabase, สร้าง PDF/รูป, นำเข้า Excel ยังต้องมีเน็ต) */
+const CACHE = 'sitemat-v12';
+const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
+
+self.addEventListener('install', e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+});
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  // อย่า cache คำขอไปยัง Supabase หรือ CDN — ให้ผ่านไปเน็ตตรง ๆ
+  if (url.origin !== location.origin) return;
+  e.respondWith(
+    caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
+      const copy = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+      return res;
+    }).catch(() => caches.match('./index.html')))
+  );
+});
