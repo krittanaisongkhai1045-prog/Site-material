@@ -172,7 +172,7 @@
   .floorcard.done .fl-bar>i{background:var(--green)}
   .floorcard .fl-right{text-align:right;font-weight:800;font-family:var(--mono);color:var(--amber)}
   .floorcard.done .fl-right{color:var(--green)}
-  .fl-edit{display:flex;gap:8px;margin-bottom:8px;align-items:center}.fl-edit input:first-child{flex:1}  .building{max-width:580px;margin:4px auto 0}
+  .fl-edit{display:flex;gap:8px;margin-bottom:8px;align-items:center}.fl-edit input:first-child{flex:1}  .building{max-width:100%;margin:4px 0 0}
   .bld-roof{background:#1B1E22;color:#fff;text-align:center;font-weight:800;font-size:13px;letter-spacing:.5px;padding:9px;border-radius:12px 12px 0 0}
   .bld-floor{position:relative;background:#EFEDE6;border:1px solid var(--line);border-top:none;padding:10px 14px;overflow:hidden;min-height:46px}
   .bld-floor .bf-fill{position:absolute;left:0;top:0;bottom:0;opacity:.20;z-index:0}
@@ -393,13 +393,13 @@ function renderMat(){
     <select id="fCat"><option value="*">ทุกหมวด</option>${proj.categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>
     <select id="fStatus"><option value="all">ทุกสถานะ</option><option value="short">ยังขาด</option><option value="done">ครบแล้ว</option></select>
     <select id="fSort"><option value="def">เรียง: ค่าเริ่มต้น</option><option value="remain">คงเหลือมาก→น้อย</option><option value="pct">% น้อย→มาก</option></select>
-    <button class="btn-report" id="reportBtn">📕 ออกรายงาน PDF</button>`;
+    <select id="repSize" style="margin-left:auto"><option value="a4">A4</option><option value="a3">A3</option></select><button class="btn-report" id="reportBtn" style="margin-left:8px">📕 ออกรายงาน PDF</button>`;
   $("#fCat").value=fCat;$("#fStatus").value=fStatus;$("#fSort").value=fSort;
   $("#fCat").onchange=e=>{fCat=e.target.value;renderMat();};
   $("#search").oninput=()=>renderMat();
   $("#fStatus").onchange=e=>{fStatus=e.target.value;renderMat();};
   $("#fSort").onchange=e=>{fSort=e.target.value;renderMat();};
-  $("#reportBtn").onclick=()=>exportReport('pdf');
+  $("#reportBtn").onclick=()=>exportReport('pdf',$("#repSize").value);
   $$('.tab[data-b]').forEach(t=>t.onclick=()=>{activeB=t.dataset.b;renderMat();});
   $("#mngB").onclick=buildingManager;
   $("#foot").innerHTML='ข้อมูล+รูปบันทึกในเบราว์เซอร์นี้ · กด ⋯ → สำรอง เพื่อเก็บไฟล์';
@@ -506,22 +506,27 @@ function buildingFloorsPanel(b){
   if(!order.length)return `<div class="dpanel"><h4>ภาพตึก อาคาร ${esc(b)} — สถานะรายชั้น</h4><div style="color:var(--ink-soft);font-size:13px;line-height:1.7">ยังไม่ได้กำหนดชั้นให้วัสดุในอาคารนี้<br>ไปที่แท็บ <b>📦 คลังวัสดุ</b> → กดปุ่ม <b>🏢 ชั้น</b> ของวัสดุในอาคาร ${esc(b)} เพื่อใส่จำนวนแต่ละชั้น แล้วกลับมาดูภาพตึกที่นี่</div></div>`;
   const numOf=s=>{const mt=String(s).match(/(\d+)/);return mt?+mt[1]:0;};
   const sorted=order.slice().sort((a,c)=>numOf(c)-numOf(a));
+  let fDone=0,fPart=0,fNone=0;
   const slabs=sorted.map(fn=>{
     const items=map[fn];
-    const totA=items.reduce((s,x)=>s+x.alloc,0),totI=items.reduce((s,x)=>s+x.iss,0);
     const avg=Math.round(items.reduce((s,x)=>s+(x.alloc>0?Math.min(1,x.iss/x.alloc):(x.iss>0?1:0)),0)/items.length*100);
+    if(avg>=100)fDone++;else if(avg>0)fPart++;else fNone++;
     const color=avg>=100?'#3B7A57':(avg>=50?'#6E9BC5':(avg>0?'#C9820C':'#B0ABA0'));
     const chips=items.map(x=>{const p=x.alloc>0?Math.round(x.iss/x.alloc*100):0,done=p>=100;return `<span class="fl-chip" style="border-color:${done?'#BEDAC8':'#E0DCCF'};color:${done?'#3B7A57':'var(--ink)'}">${esc(x.m.item||x.m.desc.slice(0,12))} ${num(x.iss)}/${num(x.alloc)}</span>`;}).join('');
     return `<div class="bld-floor"><div class="bf-fill" style="width:${Math.min(100,avg)}%;background:${color}"></div><div class="bf-label">${esc(fn)}</div><div class="bf-pct" style="color:${color}">${avg}%</div><div class="bf-detail">${chips}</div></div>`;
   }).join('');
-  return `<div class="dpanel"><h4>ภาพตึก อาคาร ${esc(b)} — สถานะรายชั้น</h4><div class="building"><div class="bld-roof">🏢 อาคาร ${esc(b)}</div>${slabs}<div class="bld-ground"></div></div></div>`;
+  const buildingPanel=`<div class="dpanel"><h4>ภาพตึก อาคาร ${esc(b)} — สถานะรายชั้น</h4><div class="building"><div class="bld-roof">🏢 อาคาร ${esc(b)}</div>${slabs}<div class="bld-ground"></div></div></div>`;
+  const summary=`<div class="dpanel navy"><h4>สรุปรายชั้น</h4>
+    <div class="dgrid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">${stat('จำนวนชั้น',sorted.length)}${stat('ครบแล้ว',fDone,'',fDone?'ok':'')}${stat('กำลังเบิก',fPart)}${stat('ยังไม่เริ่ม',fNone,'',fNone?'warn':'')}</div>
+    <div class="legend"><div class="li"><span class="sw" style="background:#3B7A57"></span><span>ครบ (100%)</span></div><div class="li"><span class="sw" style="background:#6E9BC5"></span><span>กำลังเบิก (50–99%)</span></div><div class="li"><span class="sw" style="background:#C9820C"></span><span>เพิ่งเริ่ม (1–49%)</span></div><div class="li"><span class="sw" style="background:#B0ABA0"></span><span>ยังไม่เบิก (0%)</span></div></div></div>`;
+  return `<div class="dpanels">${buildingPanel}${summary}</div>`;
 }
 
 function renderDash(){
   $("#toolbar").innerHTML=`<select id="db"><option value="*">🏢 ภาพรวมทุกอาคาร</option>${proj.buildings.map(b=>`<option value="${esc(b)}">อาคาร ${esc(b)}</option>`).join('')}</select>
-    <button class="btn-report" id="dashPdf" style="margin-left:auto">📕 บันทึก PDF</button><button class="btn-sm" id="dashPng" style="padding:9px 13px">🖼️ PNG</button>`;
+    <select id="dashSize" style="margin-left:auto"><option value="a4">PDF A4</option><option value="a3">PDF A3</option></select><button class="btn-report" id="dashPdf" style="margin-left:8px">📕 บันทึก PDF</button><button class="btn-sm" id="dashPng" style="padding:9px 13px">🖼️ PNG</button>`;
   $("#db").value=dashB;$("#db").onchange=e=>{dashB=e.target.value;renderDash();};
-  $("#dashPdf").onclick=()=>exportDash('pdf');$("#dashPng").onclick=()=>exportDash('img');
+  $("#dashPdf").onclick=()=>exportDash('pdf',$("#dashSize").value);$("#dashPng").onclick=()=>exportDash('img');
   $("#stats").innerHTML='';$("#foot").innerHTML='อินโฟกราฟจากข้อมูลจริง · เลือกภาพรวม/รายอาคารด้านบน แล้วกดบันทึก PDF/PNG ไปนำเสนอได้';
   if(proj.materials.length===0){$("#list").innerHTML=`<div class="empty"><h3>ยังไม่มีข้อมูลให้แสดงกราฟ</h3><p>เพิ่มวัสดุหรือโหลดตัวอย่างก่อน</p><button class="btn-sm" onclick="__seed()">โหลดตัวอย่าง</button></div>`;return;}
 
@@ -554,14 +559,18 @@ function renderDash(){
   const floorsPanel=dashB!=='*'?buildingFloorsPanel(dashB):'';
   $("#list").innerHTML=`<div id="dashCanvasArea" style="background:var(--paper);padding:6px"><div class="dash">${hero}${kpis}${floorsPanel}<div class="dpanels">${barsPanel}${gaugePanel}</div><div class="dpanels">${catPanel}${rankPanel}</div><div class="dash-src">สร้างโดยระบบวัสดุไซต์งาน${proj.issuer?' · ผู้ออกเอกสาร: '+esc(proj.issuer):''}</div></div></div>`;
 }
-async function exportDash(kind){
+async function exportDash(kind,size){
   if(typeof html2canvas==='undefined'){toast('ตัวสร้างรูปโหลดไม่สำเร็จ (ต้องต่อเน็ต)');return;}
   const el=$("#dashCanvasArea");if(!el){toast('ไม่มีข้อมูลให้บันทึก');return;}
   toast('กำลังสร้างภาพ…');
   try{const canvas=await html2canvas(el,{scale:2,backgroundColor:'#F4F3EE',useCORS:true});
     const nm=`${(proj.name||'โครงการ')}-${dashB==='*'?'ทุกอาคาร':'อาคาร'+dashB}-${today()}`;
-    if(kind==='img'){const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='กราฟ-'+nm+'.png';a.click();toast('บันทึกรูปแล้ว');}
-    else{const {jsPDF}=window.jspdf;const w=canvas.width*0.5,h=canvas.height*0.5;const pdf=new jsPDF(w>h?'l':'p','pt',[w,h]);pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',0,0,w,h);pdf.save('กราฟ-'+nm+'.pdf');toast('บันทึก PDF แล้ว');}
+    if(kind==='img'){const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='กราฟ-'+nm+'.png';a.click();toast('บันทึกรูปแล้ว');return;}
+    const {jsPDF}=window.jspdf;const fmt=(size==='a3')?'a3':'a4';const pdf=new jsPDF('p','mm',fmt);
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),mg=8,availW=pw-2*mg,availH=ph-2*mg,aspect=canvas.width/canvas.height;
+    let w=availW,h=w/aspect;if(h>availH){h=availH;w=h*aspect;}
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',(pw-w)/2,mg,w,h);
+    pdf.save('กราฟ-'+nm+'-'+fmt.toUpperCase()+'.pdf');toast('บันทึก PDF ('+fmt.toUpperCase()+') แล้ว');
   }catch(e){toast('บันทึกไม่สำเร็จ');console.error(e);}
 }
 
@@ -712,7 +721,8 @@ async function addPagedHTML(pdf,html){
   const atoms=[...holder.querySelectorAll('tr,h3,.rep-keep')].map(el=>{const r=el.getBoundingClientRect();return{top:r.top-hostTop,bottom:r.bottom-hostTop};});
   const canvas=await html2canvas(holder,{scale:2,backgroundColor:'#fff',useCORS:true});
   document.body.removeChild(holder);
-  const S=canvas.width/cw,pageWmm=210,pxPerMM=cw/pageWmm,topM=6,usableHpx=(297-topM*2)*pxPerMM;
+  const pageWmm=pdf.internal.pageSize.getWidth(),pageHmm=pdf.internal.pageSize.getHeight();
+  const S=canvas.width/cw,pxPerMM=cw/pageWmm,topM=6,usableHpx=(pageHmm-topM*2)*pxPerMM;
   const breaks=[];let y=0,guard=0;
   while(y<totalH-1&&guard++<300){
     let end=Math.min(totalH,y+usableHpx);
@@ -728,10 +738,10 @@ async function addPagedHTML(pdf,html){
   });
 }
 function canvasToPDF(pdf,canvas){const pw=210,ph=297,iw=pw,ih=canvas.height*pw/canvas.width,img=canvas.toDataURL('image/jpeg',0.92);let left=ih,pos=0;pdf.addImage(img,'JPEG',0,pos,iw,ih);left-=ph;while(left>0){pos-=ph;pdf.addPage();pdf.addImage(img,'JPEG',0,pos,iw,ih);left-=ph;}}
-async function exportReport(kind){if(proj.materials.length===0){toast('ยังไม่มีข้อมูลให้ออกรายงาน');return;}if(typeof html2canvas==='undefined'||typeof window.jspdf==='undefined'){toast('ตัวสร้างรายงานโหลดไม่สำเร็จ (ต้องต่อเน็ต)');return;}
+async function exportReport(kind,size){if(proj.materials.length===0){toast('ยังไม่มีข้อมูลให้ออกรายงาน');return;}if(typeof html2canvas==='undefined'||typeof window.jspdf==='undefined'){toast('ตัวสร้างรายงานโหลดไม่สำเร็จ (ต้องต่อเน็ต)');return;}
   toast('กำลังสร้างรายงาน…');try{
     if(kind==='img'){const canvas=await renderToCanvas(reportHTML());const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download=`รายงาน-${(proj.name||'โครงการ')}-${today()}.png`;a.click();toast('บันทึกรูปแล้ว');}
-    else{const {jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');await addPagedHTML(pdf,reportHTML());pdf.save(`รายงาน-${(proj.name||'โครงการ')}-${today()}.pdf`);toast('บันทึก PDF แล้ว');}
+    else{const {jsPDF}=window.jspdf;const fmt=(size==='a3')?'a3':'a4';const pdf=new jsPDF('p','mm',fmt);await addPagedHTML(pdf,reportHTML());pdf.save(`รายงาน-${(proj.name||'โครงการ')}-${fmt.toUpperCase()}-${today()}.pdf`);toast('บันทึก PDF ('+fmt.toUpperCase()+') แล้ว');}
   }catch(e){toast('สร้างรายงานไม่สำเร็จ');console.error(e);}}
 function issueSlipHTML(i){return `<div style="padding:30px 34px;font-family:Sarabun,sans-serif;color:#1B1E22">
   <div class="rep-keep" style="display:flex;justify-content:space-between;border-bottom:3px solid #1B1E22;padding-bottom:10px">
