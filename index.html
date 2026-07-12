@@ -156,7 +156,23 @@
   .storebar .pill.left{background:var(--blue-soft);color:var(--blue)}
   .storebar .pill.left.neg{background:#F7E1DB;color:var(--red)}
   .storebar .sb-recv{padding:6px 12px;margin-left:auto;font-size:12px}
-  .storebar .thumbs{display:flex;gap:4px}.storebar .thumbs img{width:28px;height:28px;object-fit:cover;border-radius:5px;border:1px solid var(--line-strong);cursor:pointer}
+  .storebar .thumbs{display:flex;gap:4px}.storebar .thumbs img{width:28px;height:28px;object-fit:cover;border-radius:5px;border:1px solid var(--line-strong);cursor:pointer}  .btn-floor{background:var(--panel);color:var(--blue);border:1px solid var(--line-strong);border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;margin-top:6px}
+  .btn-floor:hover{background:#fff;border-color:var(--blue)}
+  .iitem .i-floor{max-width:118px}
+  .floorstack{display:flex;flex-direction:column;gap:7px;border-left:4px solid var(--ink);padding-left:12px;margin-left:6px}
+  .floorcard{display:grid;grid-template-columns:74px 1fr 44px;gap:10px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:10px 13px;position:relative}
+  .floorcard::before{content:"";position:absolute;left:-16px;top:50%;width:12px;height:2px;background:var(--line-strong)}
+  .floorcard.done{background:var(--green-soft);border-color:#BEDAC8}
+  .floorcard.short{background:#fff}
+  .floorcard .fl-name{font-weight:800;font-size:14px}
+  .floorcard .fl-nums{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-soft)}
+  .floorcard .fl-nums b{color:var(--ink);font-family:var(--mono)}
+  .floorcard .fl-bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:5px}
+  .floorcard .fl-bar>i{display:block;height:100%;background:var(--blue)}
+  .floorcard.done .fl-bar>i{background:var(--green)}
+  .floorcard .fl-right{text-align:right;font-weight:800;font-family:var(--mono);color:var(--amber)}
+  .floorcard.done .fl-right{color:var(--green)}
+  .fl-edit{display:flex;gap:8px;margin-bottom:8px;align-items:center}.fl-edit input:first-child{flex:1}
 </style>
 </head>
 <body>
@@ -208,7 +224,7 @@
 </div></div>
 
 <div class="scrim" id="scrimIssue"><div class="sheet">
-  <h3>สร้างใบเบิกวัสดุ</h3><div class="sub">บันทึกการจ่ายของออกไปแต่ละอาคาร + แนบรูปใบเบิกที่เซ็นแล้ว</div>
+  <h3 id="issueTitle">สร้างใบเบิกวัสดุ</h3><div class="sub">บันทึกการจ่ายของออกไปแต่ละอาคาร + แนบรูปใบเบิกที่เซ็นแล้ว</div>
   <div class="form-grid">
     <div class="fg"><label>อาคารที่เบิกไป</label><select id="i_building"></select></div>
     <div class="fg"><label>วันที่</label><input type="date" id="i_date"></div>
@@ -270,7 +286,8 @@ if(!window.storage){
    ตั้งค่า Supabase — ใส่ 2 ค่านี้เพื่อเปิดโหมด "ล็อกอินจริง + ข้อมูลกลางแชร์กัน"
    (เว้นว่างไว้ = ใช้แบบเก็บในเครื่องเหมือนเดิม)
    ============================================================ */
-const SUPABASE_URL='sb_publishable_xOfoiPez2WntFNu6n_Jc6g_CChgqYUA';       SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlY2t5eXhidG11eG5vY3h6cWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3Njc5MDIsImV4cCI6MjA5OTM0MzkwMn0.LG7NFv7q7SLdcLjWZ69f3Yoe1gZHKEs2nIujaqJbp0M';  // anon public key จาก Supabase → Settings → API
+const SUPABASE_URL='https://seckyyxbtmuxnocxzqaa.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNlY2t5eXhidG11eG5vY3h6cWFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3Njc5MDIsImV4cCI6MjA5OTM0MzkwMn0.LG7NFv7q7SLdcLjWZ69f3Yoe1gZHKEs2nIujaqJbp0M';
 let supa=null;
 const SUPA_ON=!!(SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase&&window.supabase.createClient);
 if(SUPA_ON){
@@ -287,7 +304,7 @@ const DEF_B=['A','B','C','D','E','F','G','H','I','J'];
 const DEF_CATS=['กระเบื้อง','ปูนถุง','เซี๊ยบ','เครื่องมือช่าง'];
 let meta={projects:[],currentId:null,pinHash:null};
 let proj={name:"",issuer:"",buildings:DEF_B.slice(),categories:DEF_CATS.slice(),materials:[],issues:[],log:[]};
-let view='mat',activeB='*',fStatus='all',fSort='def',fCat='*',dashB='*',editId=null,recvId=null,rPhotos=[],iPhotos=[],currentUser=null;
+let view='mat',activeB='*',fStatus='all',fSort='def',fCat='*',dashB='*',editId=null,recvId=null,rPhotos=[],iPhotos=[],iExisting=[],editIssueId=null,currentUser=null;
 const PALETTE=['#E23B3B','#1F3A63','#6E9BC5','#C9820C','#3B7A57','#4FA3A3','#8E6FB0','#B4462F','#5A6067','#C7A33B'];
 function catColor(i){return PALETTE[((i%PALETTE.length)+PALETTE.length)%PALETTE.length];}
 
@@ -329,10 +346,12 @@ function bufPct(m){return (m&&m.bufferPct!=null)?+m.bufferPct:0}
 function matTotal(m){return +(m&&m.total)||0}
 function bufReserve(m){return matTotal(m)*bufPct(m)/100}
 function distributable(m){return Math.max(0,matTotal(m)-bufReserve(m))}
-function allocated(m){return proj.buildings.reduce((s,b)=>s+baseTarget(m,b),0)}
+function allocated(m){return proj.buildings.reduce((s,b)=>s+target(m,b),0)}
 function overAlloc(m){return matTotal(m)>0 && allocated(m)>distributable(m)+1e-9}
-function target(m,b){return baseTarget(m,b)}
+function floorsOf(m,b){return (m.floors&&m.floors[b])?m.floors[b]:[]}
+function target(m,b){const f=floorsOf(m,b);return f.length?f.reduce((s,x)=>s+(+x.qty||0),0):baseTarget(m,b);}
 function issuedTo(m,b){let s=0;(proj.issues||[]).forEach(i=>{if(i.building===b)(i.items||[]).forEach(it=>{if(it.materialId===m.id)s+=+it.qty||0;});});return s;}
+function issuedToFloor(m,b,fl){let s=0;(proj.issues||[]).forEach(i=>{if(i.building===b)(i.items||[]).forEach(it=>{if(it.materialId===m.id&&(it.floor||'')===(fl||''))s+=+it.qty||0;});});return s;}
 function issuedTotal(m){let s=0;(proj.issues||[]).forEach(i=>(i.items||[]).forEach(it=>{if(it.materialId===m.id)s+=+it.qty||0;}));return s;}
 function storeLeft(m){return recvTotal(m)-issuedTotal(m);}
 function toIssue(m,b){return target(m,b)-issuedTo(m,b);}
@@ -433,7 +452,7 @@ function bldRowHTML(m,b){
       <div class="bar ${done?'done':''}"><i style="width:${pct}%"></i></div>
       <div class="lastdel">${left>0?`ยังต้องเบิกอีก ${num(left)} ${esc(m.unit||'')}`:(t>0?'ครบตามจัดสรรแล้ว ✓':'')}</div></div>
     <div class="remain ${cls}"><span class="big">${num(left)}</span><small>คงเหลือต้องเบิก</small></div>
-    <div class="recv-col"><button class="btn-recv" onclick="__issueFor('${m.id}','${esc(b)}')">📄 เบิก</button></div></div>`;
+    <div class="recv-col"><button class="btn-recv" onclick="__issueFor('${m.id}','${esc(b)}')">📄 เบิก</button><button class="btn-floor" onclick="__floors('${m.id}','${esc(b)}')">🏢 ชั้น${floorsOf(m,b).length?' ('+floorsOf(m,b).length+')':''}</button></div></div>`;
 }
 function stat(k,v,sub,cls){return `<div class="stat ${cls||''}"><div class="k">${k}</div><div class="v"><span class="num">${v}</span>${sub?` <small>${sub}</small>`:''}</div></div>`}
 async function loadThumbs(){for(const el of $$('.thumbs[data-photos]')){if(el.dataset.done)continue;el.dataset.done=1;let arr=[];try{arr=JSON.parse(el.dataset.photos)}catch(e){}let h='';for(const p of arr.slice(0,3)){const d=await P.get(p.id);if(d)h+=`<img src="${d}" onclick="__lb('${p.id}','${esc(p.cap)}')">`;}if(arr.length>3)h+=`<div class="more">+${arr.length-3}</div>`;el.innerHTML=h;}}
@@ -457,9 +476,9 @@ function renderIssue(){
   if(list.length===0){wrap.innerHTML=`<div class="empty"><h3>ไม่พบใบเบิก</h3></div>`;return;}
   wrap.innerHTML=list.map(icardHTML).join('');loadIThumbs();
 }
-function icardHTML(i){const items=i.items.map(it=>`${esc(it.desc)}${it.item?' ('+esc(it.item)+')':''} × ${num(it.qty)} ${esc(it.unit||'')}`).join(' · ');
+function icardHTML(i){const items=i.items.map(it=>`${esc(it.desc)}${it.item?' ('+esc(it.item)+')':''}${it.floor?' ['+esc(it.floor)+']':''} × ${num(it.qty)} ${esc(it.unit||'')}`).join(' · ');
   return `<div class="icard"><div class="ih"><span class="ino">${esc(i.no)}</span><span class="bpill">อาคาร ${esc(i.building)}</span><span class="ib-date">${fmtDate(i.date)}${i.requester?' · ผู้เบิก '+esc(i.requester):''}</span>
-    <div class="iactions"><button class="btn-sm pdf" onclick="__issuePDF('${i.id}')">📄 PDF</button><button class="btn-sm" onclick="__issueDel('${i.id}')">ลบ</button></div></div>
+    <div class="iactions"><button class="btn-sm" onclick="__issueEdit('${i.id}')">✎ แก้ไข</button><button class="btn-sm pdf" onclick="__issuePDF('${i.id}')">📄 PDF</button><button class="btn-sm" onclick="__issueDel('${i.id}')">ลบ</button></div></div>
     <div class="isummary"><b>${i.items.length} รายการ:</b> ${items}${i.note?'<br>หมายเหตุ: '+esc(i.note):''}${i.issuer?'<br>ผู้ออกเอกสาร: '+esc(i.issuer):''}</div>
     ${(i.photos&&i.photos.length)?`<div class="ithumbs" data-photos='${esc(JSON.stringify(i.photos))}' data-cap="${esc(i.no+' · อาคาร '+i.building)}"></div>`:''}</div>`;
 }
@@ -570,20 +589,63 @@ function saveRecv(){const m=proj.materials.find(x=>x.id===recvId);if(!m)return;c
 function renderPvGrid(elId,arr,onRm){$(elId).innerHTML=arr.map((d,idx)=>`<div class="pv"><img src="${d}"><button class="x" data-i="${idx}">✕</button></div>`).join('');$$(elId+' .x').forEach(b=>b.onclick=()=>onRm(+b.dataset.i));}
 
 /* issue sheet */
-function iitemRow(sel){const opts=proj.materials.map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${esc((m.item?m.item+' · ':'')+m.desc)}</option>`).join('');
-  return `<div class="iitem"><select class="i-mat"><option value="">— เลือกวัสดุ —</option>${opts}</select><input type="number" class="i-qty" placeholder="จำนวน" style="max-width:100px"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;}
-function openIssue(preB,preMat){iPhotos=[];$("#i_building").innerHTML=proj.buildings.map(x=>`<option ${x===preB?'selected':''}>${esc(x)}</option>`).join('');
-  $("#i_date").value=today();$("#i_req").value='';$("#i_appr").value='';$("#i_issuer").value=proj.issuer||'';$("#i_note").value='';$("#iPhotoPrev").innerHTML='';$("#iitemBox").innerHTML=iitemRow(preMat);
+function iitemRow(sel,qtyVal,floorVal){const opts=proj.materials.map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${esc((m.item?m.item+' · ':'')+m.desc)}</option>`).join('');
+  return `<div class="iitem"><select class="i-mat"><option value="">— เลือกวัสดุ —</option>${opts}</select><select class="i-floor" ${floorVal?`data-val="${esc(floorVal)}"`:''}><option value="">ทั้งอาคาร</option></select><input type="number" class="i-qty" value="${qtyVal!=null?qtyVal:''}" placeholder="จำนวน" style="max-width:82px"><button class="rm" onclick="this.parentElement.remove()">✕</button></div>`;}
+function refreshFloorSelects(){const b=$("#i_building").value;$$('#iitemBox .iitem').forEach(row=>{const mid=row.querySelector('.i-mat').value;const fs=row.querySelector('.i-floor');const cur=fs.getAttribute('data-val')||fs.value;const m=proj.materials.find(x=>x.id===mid);const floors=m?floorsOf(m,b):[];fs.innerHTML='<option value="">ทั้งอาคาร</option>'+floors.map(f=>`<option ${f.name===cur?'selected':''}>${esc(f.name)}</option>`).join('');fs.removeAttribute('data-val');});}
+async function renderIssuePhotoGrid(){const el=$("#iPhotoPrev");let html='';
+  for(let i=0;i<iExisting.length;i++){const d=await P.get(iExisting[i]);if(d)html+=`<div class="pv"><img src="${d}"><button class="x" data-ex="${i}">✕</button></div>`;}
+  iPhotos.forEach((d,i)=>{html+=`<div class="pv"><img src="${d}"><button class="x" data-nw="${i}">✕</button></div>`;});
+  el.innerHTML=html;
+  el.querySelectorAll('[data-ex]').forEach(b=>b.onclick=()=>{iExisting.splice(+b.dataset.ex,1);renderIssuePhotoGrid();});
+  el.querySelectorAll('[data-nw]').forEach(b=>b.onclick=()=>{iPhotos.splice(+b.dataset.nw,1);renderIssuePhotoGrid();});}
+function openIssue(preB,preMat,editIdArg){
+  editIssueId=editIdArg||null;iPhotos=[];iExisting=[];
+  const ed=editIssueId?proj.issues.find(x=>x.id===editIssueId):null;
+  $("#issueTitle").textContent=ed?('แก้ไขใบเบิก '+ed.no):'สร้างใบเบิกวัสดุ';
+  $("#i_building").innerHTML=proj.buildings.map(x=>`<option ${x===(ed?ed.building:preB)?'selected':''}>${esc(x)}</option>`).join('');
+  $("#i_date").value=ed?ed.date:today();$("#i_req").value=ed?(ed.requester||''):'';$("#i_appr").value=ed?(ed.approver||''):'';$("#i_issuer").value=ed?(ed.issuer||''):(proj.issuer||'');$("#i_note").value=ed?(ed.note||''):'';
+  $("#iitemBox").innerHTML=ed?ed.items.map(it=>iitemRow(it.materialId,it.qty,it.floor)).join(''):iitemRow(preMat);
+  if(ed)iExisting=[...(ed.photos||[])];
+  refreshFloorSelects();renderIssuePhotoGrid();
   $("#scrimIssue").classList.add('show');}
-function saveIssue(){const items=[...$$('#iitemBox .iitem')].map(r=>{const mid=r.querySelector('.i-mat').value;const qty=+r.querySelector('.i-qty').value||0;if(!mid||qty<=0)return null;const m=proj.materials.find(x=>x.id===mid);return{materialId:mid,desc:m.desc,item:m.item,unit:m.unit,qty};}).filter(Boolean);
+function saveIssue(){
+  const items=[...$$('#iitemBox .iitem')].map(r=>{const mid=r.querySelector('.i-mat').value;const qty=+r.querySelector('.i-qty').value||0;const floor=r.querySelector('.i-floor').value||'';if(!mid||qty<=0)return null;const m=proj.materials.find(x=>x.id===mid);return{materialId:mid,desc:m.desc,item:m.item,unit:m.unit,qty,floor};}).filter(Boolean);
   if(items.length===0){toast('เพิ่มรายการที่เบิกอย่างน้อย 1 อย่าง');return;}
+  const building=$("#i_building").value;
+  if(editIssueId){const rec=proj.issues.find(x=>x.id===editIssueId);if(!rec)return;
+    const removed=(rec.photos||[]).filter(p=>!iExisting.includes(p));removed.forEach(p=>P.del(p));
+    const newIds=[];iPhotos.forEach(d=>{const pid=uid();newIds.push(pid);P.set(pid,d);});
+    Object.assign(rec,{date:$("#i_date").value||today(),building,requester:$("#i_req").value.trim(),approver:$("#i_appr").value.trim(),issuer:$("#i_issuer").value.trim(),note:$("#i_note").value.trim(),items,photos:[...iExisting,...newIds]});
+    logEv('issue','แก้ไขใบเบิก '+rec.no);saveProj();$("#scrimIssue").classList.remove('show');editIssueId=null;toast('แก้ไขใบเบิก '+rec.no+' แล้ว');render();return;}
   const seq=(proj.issues||[]).reduce((mx,i)=>Math.max(mx,parseInt(String(i.no).replace(/\D/g,''))||0),0)+1;
-  const rec={id:uid(),no:'RQ-'+String(seq).padStart(3,'0'),date:$("#i_date").value||today(),building:$("#i_building").value,requester:$("#i_req").value.trim(),approver:$("#i_appr").value.trim(),issuer:$("#i_issuer").value.trim(),note:$("#i_note").value.trim(),items,photos:[]};
+  const rec={id:uid(),no:'RQ-'+String(seq).padStart(3,'0'),date:$("#i_date").value||today(),building,requester:$("#i_req").value.trim(),approver:$("#i_appr").value.trim(),issuer:$("#i_issuer").value.trim(),note:$("#i_note").value.trim(),items,photos:[]};
   const over=items.filter(it=>{const m=proj.materials.find(x=>x.id===it.materialId);return m&&it.qty>storeLeft(m)+1e-9;});
   if(over.length)toast('⚠ บางรายการเบิกเกินคงเหลือในสโตร์ — บันทึกไว้แล้ว โปรดตรวจสอบ');
   iPhotos.forEach(d=>{const pid=uid();rec.photos.push(pid);P.set(pid,d);});
   proj.issues=proj.issues||[];proj.issues.push(rec);logEv('issue',`ใบเบิก ${rec.no} · อาคาร ${rec.building} · ${items.length} รายการ`);
   saveProj();$("#scrimIssue").classList.remove('show');toast('บันทึกใบเบิก '+rec.no);render();}
+function floorModal(mid,b){
+  const m=proj.materials.find(x=>x.id===mid);if(!m)return;m.floors=m.floors||{};
+  let floors=(m.floors[b]||[]).map(f=>({name:f.name,qty:+f.qty||0}));
+  const tot=()=>floors.reduce((s,f)=>s+(+f.qty||0),0);
+  const stack=()=>{const rows=floors.map((f,idx)=>{const iss=issuedToFloor(m,b,f.name),alloc=+f.qty||0,rm=alloc-iss,pct=alloc>0?Math.min(100,Math.round(iss/alloc*100)):(iss>0?100:0),done=rm<=0&&alloc>0;
+      return `<div class="floorcard ${done?'done':(rm>0?'short':'')}"><div class="fl-name">${esc(f.name||('ชั้น '+(idx+1)))}</div><div class="fl-body"><div class="fl-nums"><span>เบิกแล้ว <b>${num(iss)}</b> / ${num(alloc)} ${esc(m.unit||'')}</span><span>${pct}%</span></div><div class="fl-bar"><i style="width:${pct}%"></i></div></div><div class="fl-right">${done?'✓':num(rm)}</div></div>`;}).reverse().join('');
+    return rows||'<div style="color:var(--ink-soft);font-size:13px;text-align:center;padding:16px 0">ยังไม่มีชั้น — เพิ่มด้านล่าง</div>';};
+  const elist=()=>floors.map((f,idx)=>`<div class="fl-edit"><input value="${esc(f.name)}" data-fn="${idx}" placeholder="ชื่อชั้น เช่น ชั้น 1"><input type="number" value="${f.qty||''}" data-fq="${idx}" placeholder="จำนวน" style="max-width:88px"><button class="rm" data-fd="${idx}">✕</button></div>`).join('');
+  const s=uiSheet(`<h3>สถานะรายชั้น — อาคาร ${esc(b)}</h3><div class="sub">${esc(m.desc)}${m.item?' ('+esc(m.item)+')':''}</div>
+    <div class="floorstack" id="__fs">${stack()}</div>
+    <div style="margin-top:14px;font-weight:700;font-size:13px;color:var(--ink-soft)">แก้ไขชั้น / จำนวนจัดสรร</div>
+    <div id="__fe">${elist()}</div><button class="mini" id="__fa">＋ เพิ่มชั้น</button>
+    <div class="alloc-summary" style="margin-top:10px">รวมจัดสรรทุกชั้น <b>${num(tot())}</b> ${esc(m.unit||'')} → ใช้เป็นยอดจัดสรรของอาคาร ${esc(b)}</div>
+    <div class="sheet-actions"><button class="btn ghost" data-close>ปิด</button><button class="btn solid" id="__fsave">บันทึก</button></div>`);
+  const readEdits=()=>{s.querySelectorAll('[data-fn]').forEach(i=>floors[+i.dataset.fn].name=i.value);s.querySelectorAll('[data-fq]').forEach(i=>floors[+i.dataset.fq].qty=+i.value||0);};
+  const refresh=()=>{s.querySelector('#__fs').innerHTML=stack();s.querySelector('#__fe').innerHTML=elist();bindDel();};
+  const bindDel=()=>s.querySelectorAll('[data-fd]').forEach(b2=>b2.onclick=()=>{readEdits();floors.splice(+b2.dataset.fd,1);refresh();});
+  bindDel();
+  s.querySelector('#__fa').onclick=()=>{readEdits();floors.push({name:'ชั้น '+(floors.length+1),qty:0});refresh();};
+  s.querySelector('#__fsave').onclick=()=>{readEdits();floors=floors.filter(f=>(f.name&&f.name.trim())||f.qty);m.floors[b]=floors;if(!floors.length)delete m.floors[b];saveProj();s.remove();render();toast('บันทึกชั้นแล้ว');};
+  s.querySelector('[data-close]').onclick=()=>s.remove();s.onclick=e=>{if(e.target===s)s.remove();};
+}
 async function delIssue(id){const i=proj.issues.find(x=>x.id===id);if(!i)return;if(!await confirmModal('ลบใบเบิก','ลบใบเบิก '+i.no+' ?','ลบ',true))return;(i.photos||[]).forEach(p=>P.del(p));proj.issues=proj.issues.filter(x=>x.id!==id);logEv('del','ลบใบเบิก '+i.no);saveProj();render();}
 
 /* lightbox */
@@ -652,7 +714,7 @@ function issueSlipHTML(i){return `<div style="padding:30px 34px;font-family:Sara
     <div style="text-align:right"><div style="font-family:monospace;font-size:18px;font-weight:800;color:#1F4E79">${esc(i.no)}</div><div style="font-size:12px;color:#5A6067">วันที่ ${fmtDate(i.date)}</div></div></div>
   <table style="width:100%;margin-top:14px;font-size:13px"><tr><td style="padding:4px 0"><b>อาคารที่เบิก:</b> ${esc(i.building)}</td><td style="padding:4px 0"><b>ผู้เบิก:</b> ${esc(i.requester||'-')}</td></tr></table>
   <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:12px"><thead><tr style="background:#EFEDE6;text-align:left"><th style="padding:8px;border:1px solid #DAD7CD;width:44px">ที่</th><th style="padding:8px;border:1px solid #DAD7CD">Item</th><th style="padding:8px;border:1px solid #DAD7CD">รายการ</th><th style="padding:8px;border:1px solid #DAD7CD;text-align:right;width:120px">จำนวน</th></tr></thead><tbody>
-    ${i.items.map((it,idx)=>`<tr><td style="padding:8px;border:1px solid #DAD7CD">${idx+1}</td><td style="padding:8px;border:1px solid #DAD7CD">${esc(it.item||'')}</td><td style="padding:8px;border:1px solid #DAD7CD">${esc(it.desc)}</td><td style="padding:8px;border:1px solid #DAD7CD;text-align:right">${num(it.qty)} ${esc(it.unit||'')}</td></tr>`).join('')}</tbody></table>
+    ${i.items.map((it,idx)=>`<tr><td style="padding:8px;border:1px solid #DAD7CD">${idx+1}</td><td style="padding:8px;border:1px solid #DAD7CD">${esc(it.item||'')}</td><td style="padding:8px;border:1px solid #DAD7CD">${esc(it.desc)}${it.floor?' — <b>'+esc(it.floor)+'</b>':''}</td><td style="padding:8px;border:1px solid #DAD7CD;text-align:right">${num(it.qty)} ${esc(it.unit||'')}</td></tr>`).join('')}</tbody></table>
   ${i.note?`<div style="margin-top:12px;font-size:13px"><b>หมายเหตุ:</b> ${esc(i.note)}</div>`:''}
   <table class="rep-keep" style="width:100%;margin-top:56px;font-size:13px;text-align:center"><tr>
     <td style="width:33%">..............................<br>ผู้เบิก<br>(${esc(i.requester||' ')})</td>
@@ -785,7 +847,7 @@ function supaAccount(){const s=uiSheet(`<h3>บัญชี (ระบบคล�
 
 /* expose */
 window.__add=()=>openMat(null);window.__edit=id=>openMat(proj.materials.find(m=>m.id===id));window.__recv=id=>openRecv(id);
-window.__issue=openIssue;window.__issueFor=(mid,b)=>openIssue(b,mid);window.__issuePDF=exportIssuePDF;window.__issueDel=delIssue;window.__lb=lb;window.__seed=seed;
+window.__issue=openIssue;window.__issueFor=(mid,b)=>openIssue(b,mid);window.__issueEdit=id=>openIssue(null,null,id);window.__floors=(mid,b)=>floorModal(mid,b);window.__issuePDF=exportIssuePDF;window.__issueDel=delIssue;window.__lb=lb;window.__seed=seed;
 
 /* seed */
 function seed(){const M=(desc,item,loc,shades,targets,cat,buf,unit,total)=>({id:uid(),desc,item,unit:unit||'กล่อง',category:cat||'กระเบื้อง',bufferPct:buf==null?10:buf,total:total||0,location:loc,shades,targets,receipts:[]});
@@ -799,7 +861,8 @@ function seed(){const M=(desc,item,loc,shades,targets,cat,buf,unit,total)=>({id:
   ];
   proj.materials[0].receipts.push({id:uid(),qty:800,date:'2026-06-25',time:'09:20',note:'รับเข้าสโตร์ ล็อต 1',photo:false});
   proj.materials[1].receipts.push({id:uid(),qty:2000,date:'2026-06-25',time:'14:05',note:'เฉด Y.02',photo:false});
-  proj.issues=[{id:uid(),no:'RQ-001',date:'2026-07-02',building:'A',requester:'ช่างสมชาย',approver:'ผจก.ไซต์',issuer:proj.issuer||'ธุรการไซต์',note:'งานปูพื้นชั้น 1',items:[{materialId:proj.materials[0].id,desc:proj.materials[0].desc,item:'F8',unit:'กล่อง',qty:20}],photos:[]}];
+  proj.materials[0].floors={A:[{name:'ชั้น 1',qty:20},{name:'ชั้น 2',qty:20},{name:'ชั้น 3',qty:25}]};
+  proj.issues=[{id:uid(),no:'RQ-001',date:'2026-07-02',building:'A',requester:'ช่างสมชาย',approver:'ผจก.ไซต์',issuer:proj.issuer||'ธุรการไซต์',note:'งานปูพื้นชั้น 1',items:[{materialId:proj.materials[0].id,desc:proj.materials[0].desc,item:'F8',unit:'กล่อง',qty:20,floor:'ชั้น 1'}],photos:[]}];
   logEv('new','โหลดข้อมูลตัวอย่าง');saveProj();render();toast('โหลดตัวอย่างแล้ว');}
 
 /* menu */
@@ -825,9 +888,11 @@ $("#recvCancel").onclick=()=>$("#scrimRecv").classList.remove('show');$("#recvSa
 $("#rPhotoDrop").onclick=()=>$("#rPhotoInput").click();
 $("#rPhotoInput").onchange=async e=>{if(e.target.files[0]){const d=await compress(e.target.files[0],1000,0.55);rPhotos=[d];const rr=()=>renderPvGrid('#rPhotoPrev',rPhotos,i=>{rPhotos.splice(i,1);rr();});rr();}e.target.value='';};
 $("#issueCancel").onclick=()=>$("#scrimIssue").classList.remove('show');$("#issueSave").onclick=saveIssue;
-$("#addIitem").onclick=()=>$("#iitemBox").insertAdjacentHTML('beforeend',iitemRow());
+$("#addIitem").onclick=()=>{$("#iitemBox").insertAdjacentHTML('beforeend',iitemRow());refreshFloorSelects();};
+$("#i_building").onchange=refreshFloorSelects;
+$("#iitemBox").addEventListener('change',e=>{if(e.target.classList&&e.target.classList.contains('i-mat'))refreshFloorSelects();});
 $("#iPhotoDrop").onclick=()=>$("#iPhotoInput").click();
-$("#iPhotoInput").onchange=async e=>{for(const f of e.target.files){const d=await compress(f,1600,0.6);iPhotos.push(d);}const rr=()=>renderPvGrid('#iPhotoPrev',iPhotos,i=>{iPhotos.splice(i,1);rr();});rr();e.target.value='';};
+$("#iPhotoInput").onchange=async e=>{for(const f of e.target.files){const d=await compress(f,1600,0.6);iPhotos.push(d);}renderIssuePhotoGrid();e.target.value='';};
 $("#lbClose").onclick=()=>$("#lightbox").classList.remove('show');
 $("#lightbox").onclick=e=>{if(e.target===$("#lightbox"))$("#lightbox").classList.remove('show');};
 $("#restoreFile").onchange=e=>{if(e.target.files[0])restore(e.target.files[0]);e.target.value='';};
