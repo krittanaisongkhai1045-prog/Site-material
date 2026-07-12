@@ -257,7 +257,7 @@
 <div class="scrim" id="scrimProj"><div class="sheet"><h3>โครงการ</h3><div class="sub">แต่ละโครงการเก็บข้อมูลแยกกัน</div><div id="projList"></div><button class="mini" id="newProj" style="margin-top:6px">＋ สร้างโครงการใหม่</button></div></div>
 
 <div class="lb" id="lightbox"><button class="x" id="lbClose">✕</button><img id="lbImg"><div class="cap" id="lbCap"></div></div>
-<div class="lock" id="lock"><div class="stamp">🔒 SITE</div><h2>เข้าสู่ระบบ</h2><p>ใส่ชื่อผู้ใช้และรหัสผ่าน</p><input id="lockUser" placeholder="ชื่อผู้ใช้" autocomplete="username"><input type="password" id="lockPass" placeholder="รหัสผ่าน" autocomplete="current-password"><div class="err" id="lockErr"></div><button id="lockGo">เข้าสู่ระบบ</button></div>
+<div class="lock" id="lock"><div class="stamp">🔒 SITE</div><h2>เข้าสู่ระบบ</h2><p>ใส่ชื่อผู้ใช้และรหัสผ่าน</p><input id="lockUser" placeholder="ชื่อผู้ใช้" autocomplete="username"><input type="password" id="lockPass" placeholder="รหัสผ่าน" autocomplete="current-password"><div class="err" id="lockErr"></div><button id="lockGo">เข้าสู่ระบบ</button><button id="lockReset" style="margin-top:16px;background:none;border:none;color:#8B9098;text-decoration:underline;cursor:pointer;font:inherit;font-size:12px">ลืมรหัส? ล้างบัญชี/ข้อมูลในเครื่องนี้ (รีเซ็ต)</button></div>
 <div class="lock" id="supaAuth"><div class="stamp">☁️ SITE</div><h2>เข้าสู่ระบบ (คลาวด์)</h2><p>อีเมล + รหัสผ่าน · ข้อมูลกลางของทีม</p><input id="saEmail" type="email" placeholder="อีเมล" autocomplete="username"><input id="saPass" type="password" placeholder="รหัสผ่าน" autocomplete="current-password"><div class="err" id="saErr"></div><button id="saLogin">เข้าสู่ระบบ</button><button id="saSignup" style="margin-top:8px;background:transparent;border:1px solid #464B52;color:#E7E6E0">สมัครสมาชิกใหม่</button></div>
 <div class="toast" id="toast"></div>
 <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none">
@@ -835,6 +835,14 @@ function showSupaAuth(){$("#supaAuth").classList.add('show');setTimeout(()=>$("#
 async function supaLogin(){const email=$("#saEmail").value.trim(),password=$("#saPass").value;$("#saErr").textContent='';const{error}=await supa.auth.signInWithPassword({email,password});if(error){$("#saErr").textContent=error.message||'เข้าสู่ระบบไม่สำเร็จ';return;}currentUser=email;$("#supaAuth").classList.remove('show');$("#saPass").value='';await startApp();}
 async function supaSignup(){const email=$("#saEmail").value.trim(),password=$("#saPass").value;if(!email||password.length<6){$("#saErr").textContent='กรอกอีเมล และรหัสผ่านอย่างน้อย 6 ตัว';return;}$("#saErr").textContent='';const{error}=await supa.auth.signUp({email,password});if(error){$("#saErr").textContent=error.message;return;}toast('สมัครสำเร็จ — ถ้าตั้งค่ายืนยันอีเมลไว้ ให้ยืนยันก่อนเข้าสู่ระบบ');}
 async function supaLogout(){try{await supa.auth.signOut();}catch(e){}location.reload();}
+async function resetLocal(){
+  if(!await confirmModal('รีเซ็ตเครื่องนี้','ล้างบัญชีและข้อมูลที่เก็บในเบราว์เซอร์นี้ทั้งหมด?\n(ถ้าใช้ Supabase ข้อมูลบนคลาวด์จะไม่ถูกลบ)','ล้างข้อมูล',true))return;
+  try{indexedDB.deleteDatabase('sitemat_db');}catch(e){}
+  try{localStorage.clear();}catch(e){}
+  try{const rs=await navigator.serviceWorker.getRegistrations();for(const r of rs)await r.unregister();}catch(e){}
+  try{const ks=await caches.keys();for(const k of ks)await caches.delete(k);}catch(e){}
+  setTimeout(()=>location.reload(true),300);
+}
 function setupRealtime(){try{supa.channel('kv-sync').on('postgres_changes',{event:'*',schema:'public',table:'kv'},scheduleSync).subscribe();}catch(e){}}
 let _syncT;function scheduleSync(){clearTimeout(_syncT);_syncT=setTimeout(async()=>{if(document.querySelector('.scrim.show'))return;try{await loadMeta();if(meta.currentId)await loadProj(meta.currentId);render();}catch(e){}},900);}
 function supaAccount(){const s=uiSheet(`<h3>บัญชี (ระบบคลาวด์)</h3><div class="sub">เข้าสู่ระบบด้วยอีเมล · ข้อมูลแชร์กันทั้งทีมแบบเรียลไทม์</div>
@@ -898,6 +906,7 @@ $("#lightbox").onclick=e=>{if(e.target===$("#lightbox"))$("#lightbox").classList
 $("#restoreFile").onchange=e=>{if(e.target.files[0])restore(e.target.files[0]);e.target.value='';};
 $("#importFile").onchange=e=>{if(e.target.files[0])importExcel(e.target.files[0]);e.target.value='';};
 $("#lockGo").onclick=doLogin;$("#lockPass").onkeydown=e=>{if(e.key==='Enter')doLogin();};$("#lockUser").onkeydown=e=>{if(e.key==='Enter')$("#lockPass").focus();};
+$("#lockReset").onclick=resetLocal;
 [$("#scrimMat"),$("#scrimRecv"),$("#scrimIssue"),$("#scrimMenu"),$("#scrimProj")].forEach(s=>s.onclick=e=>{if(e.target===s)s.classList.remove('show');});
 
 /* Supabase auth buttons */
@@ -917,6 +926,7 @@ async function startApp(){
   render();
 }
 (async function init(){
+  if(SUPABASE_URL&&SUPABASE_ANON_KEY&&!(window.supabase&&window.supabase.createClient)){$("#supaAuth").classList.add('show');$("#saErr").textContent='โหลดตัวเชื่อม Supabase ไม่สำเร็จ — ตรวจอินเทอร์เน็ต/ตัวบล็อก แล้วรีเฟรชหน้า';return;}
   if(SUPA_ON){
     try{const{data}=await supa.auth.getSession();
       if(data&&data.session){currentUser=data.session.user.email;await startApp();}else{showSupaAuth();}
