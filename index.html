@@ -172,7 +172,15 @@
   .floorcard.done .fl-bar>i{background:var(--green)}
   .floorcard .fl-right{text-align:right;font-weight:800;font-family:var(--mono);color:var(--amber)}
   .floorcard.done .fl-right{color:var(--green)}
-  .fl-edit{display:flex;gap:8px;margin-bottom:8px;align-items:center}.fl-edit input:first-child{flex:1}
+  .fl-edit{display:flex;gap:8px;margin-bottom:8px;align-items:center}.fl-edit input:first-child{flex:1}  .building{max-width:580px;margin:4px auto 0}
+  .bld-roof{background:#1B1E22;color:#fff;text-align:center;font-weight:800;font-size:13px;letter-spacing:.5px;padding:9px;border-radius:12px 12px 0 0}
+  .bld-floor{position:relative;background:#EFEDE6;border:1px solid var(--line);border-top:none;padding:10px 14px;overflow:hidden;min-height:46px}
+  .bld-floor .bf-fill{position:absolute;left:0;top:0;bottom:0;opacity:.20;z-index:0}
+  .bld-floor .bf-label{font-weight:800;font-size:13px;position:relative;z-index:1}
+  .bld-floor .bf-pct{position:absolute;right:14px;top:10px;font-family:var(--mono);font-weight:800;font-size:14px;z-index:1}
+  .bld-floor .bf-detail{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;position:relative;z-index:1}
+  .fl-chip{font-size:11px;background:#fff;border:1px solid #E0DCCF;border-radius:5px;padding:1px 8px;font-family:var(--mono);font-weight:600}
+  .bld-ground{background:#B7B2A4;height:14px;border-radius:0 0 12px 12px}
 </style>
 </head>
 <body>
@@ -492,6 +500,22 @@ function donutSVG(data,size,thick,center){
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:0 0 auto">${empty?`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#E5E2D8" stroke-width="${thick}"/>`:''}${arcs}${center!=null?`<text x="50%" y="50%" text-anchor="middle" dy="0.35em" font-size="${(size*0.24).toFixed(0)}" font-weight="800" fill="#1B1E22" font-family="Sarabun,sans-serif">${center}</text>`:''}</svg>`;
 }
 function legendHTML(data){return `<div class="legend">${data.map(d=>`<div class="li"><span class="sw" style="background:${d.color}"></span><span>${esc(d.label)}</span><span class="lv">${d.disp!=null?d.disp:num(d.value)}</span></div>`).join('')}</div>`;}
+function buildingFloorsPanel(b){
+  const order=[],map={};
+  proj.materials.forEach(m=>{floorsOf(m,b).forEach(f=>{if(!map[f.name]){map[f.name]=[];order.push(f.name);}map[f.name].push({m,alloc:+f.qty||0,iss:issuedToFloor(m,b,f.name)});});});
+  if(!order.length)return `<div class="dpanel"><h4>ภาพตึก อาคาร ${esc(b)} — สถานะรายชั้น</h4><div style="color:var(--ink-soft);font-size:13px;line-height:1.7">ยังไม่ได้กำหนดชั้นให้วัสดุในอาคารนี้<br>ไปที่แท็บ <b>📦 คลังวัสดุ</b> → กดปุ่ม <b>🏢 ชั้น</b> ของวัสดุในอาคาร ${esc(b)} เพื่อใส่จำนวนแต่ละชั้น แล้วกลับมาดูภาพตึกที่นี่</div></div>`;
+  const numOf=s=>{const mt=String(s).match(/(\d+)/);return mt?+mt[1]:0;};
+  const sorted=order.slice().sort((a,c)=>numOf(c)-numOf(a));
+  const slabs=sorted.map(fn=>{
+    const items=map[fn];
+    const totA=items.reduce((s,x)=>s+x.alloc,0),totI=items.reduce((s,x)=>s+x.iss,0);
+    const avg=Math.round(items.reduce((s,x)=>s+(x.alloc>0?Math.min(1,x.iss/x.alloc):(x.iss>0?1:0)),0)/items.length*100);
+    const color=avg>=100?'#3B7A57':(avg>=50?'#6E9BC5':(avg>0?'#C9820C':'#B0ABA0'));
+    const chips=items.map(x=>{const p=x.alloc>0?Math.round(x.iss/x.alloc*100):0,done=p>=100;return `<span class="fl-chip" style="border-color:${done?'#BEDAC8':'#E0DCCF'};color:${done?'#3B7A57':'var(--ink)'}">${esc(x.m.item||x.m.desc.slice(0,12))} ${num(x.iss)}/${num(x.alloc)}</span>`;}).join('');
+    return `<div class="bld-floor"><div class="bf-fill" style="width:${Math.min(100,avg)}%;background:${color}"></div><div class="bf-label">${esc(fn)}</div><div class="bf-pct" style="color:${color}">${avg}%</div><div class="bf-detail">${chips}</div></div>`;
+  }).join('');
+  return `<div class="dpanel"><h4>ภาพตึก อาคาร ${esc(b)} — สถานะรายชั้น</h4><div class="building"><div class="bld-roof">🏢 อาคาร ${esc(b)}</div>${slabs}<div class="bld-ground"></div></div></div>`;
+}
 
 function renderDash(){
   $("#toolbar").innerHTML=`<select id="db"><option value="*">🏢 ภาพรวมทุกอาคาร</option>${proj.buildings.map(b=>`<option value="${esc(b)}">อาคาร ${esc(b)}</option>`).join('')}</select>
@@ -527,7 +551,8 @@ function renderDash(){
   const catPanel=`<div class="dpanel blue"><h4>สัดส่วนตามหมวดหมู่ (จำนวนรายการ)</h4><div class="donut-wrap">${donutSVG(catData.length?catData:[{value:1,color:'#E5E2D8'}],140,24,activeMats.length)}${legendHTML(catData)}</div></div>`;
   const rankPanel=`<div class="dpanel amber"><h4>วัสดุที่ต้องเร่ง (คืบหน้าน้อยสุด)</h4>${rankAll.length?rankAll.map((x,i)=>`<div class="rank"><span class="rn" style="background:${i<3?'#E23B3B':'#1F3A63'}">${i+1}</span><div style="min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px">${esc(x.label)}</div><div class="rt"><i style="width:${x.pct}%;background:${i<3?'#E23B3B':'#6E9BC5'}"></i></div></div><div class="rv">${x.pct}%<br><span style="color:var(--amber)">ขาด ${num(x.rem)}</span></div></div>`).join(''):'<div style="color:var(--green);font-size:13px">🎉 ครบทุกรายการในขอบเขตนี้</div>'}</div>`;
 
-  $("#list").innerHTML=`<div id="dashCanvasArea" style="background:var(--paper);padding:6px"><div class="dash">${hero}${kpis}<div class="dpanels">${barsPanel}${gaugePanel}</div><div class="dpanels">${catPanel}${rankPanel}</div><div class="dash-src">สร้างโดยระบบวัสดุไซต์งาน${proj.issuer?' · ผู้ออกเอกสาร: '+esc(proj.issuer):''}</div></div></div>`;
+  const floorsPanel=dashB!=='*'?buildingFloorsPanel(dashB):'';
+  $("#list").innerHTML=`<div id="dashCanvasArea" style="background:var(--paper);padding:6px"><div class="dash">${hero}${kpis}${floorsPanel}<div class="dpanels">${barsPanel}${gaugePanel}</div><div class="dpanels">${catPanel}${rankPanel}</div><div class="dash-src">สร้างโดยระบบวัสดุไซต์งาน${proj.issuer?' · ผู้ออกเอกสาร: '+esc(proj.issuer):''}</div></div></div>`;
 }
 async function exportDash(kind){
   if(typeof html2canvas==='undefined'){toast('ตัวสร้างรูปโหลดไม่สำเร็จ (ต้องต่อเน็ต)');return;}
