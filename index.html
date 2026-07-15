@@ -193,7 +193,27 @@
   .rc-edit{display:flex;gap:7px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
   .rc-edit input,.rc-edit select{padding:8px;border:1px solid var(--line-strong);border-radius:8px;font:inherit;background:var(--panel)}
   .exp-row{padding:7px 2px;font-size:14px}.exp-row label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-  .i-shade{max-width:150px}
+  .i-shade{max-width:150px}  .dpanels.floors{grid-template-columns:1.15fr 1fr;align-items:start}
+  .dpanels.floors .building{max-width:100%}
+  .dpanels.floors .bld-floor{min-height:0;padding:7px 12px}
+  .dpanels.floors .bld-floor .bf-detail{margin-top:4px;gap:4px}
+  .dpanels.floors .fl-chip{font-size:10px;padding:1px 6px}
+  .fl-stat-row{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
+  .fl-stat{font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-weight:600}
+  .fl-stat b{font-family:var(--mono);font-size:14px}
+  .fl-stat.ok{background:var(--green-soft);color:var(--green);border-color:#BEDAC8}
+  .fl-stat.mid{background:var(--blue-soft);color:var(--blue)}
+  .fl-stat.warn{background:var(--amber-soft);color:var(--amber);border-color:#EAD3A0}
+  .legend.inline{display:flex;flex-wrap:wrap;gap:6px 12px}
+  .legend.inline .li{font-size:11px;gap:5px}
+  .matloc-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
+  .matloc .mloc-name{font-size:12px}.matloc .mloc-where{font-size:11px}
+  .matloc .mloc-item{font-size:11px;min-width:36px;padding:2px 6px}
+  @media(max-width:640px){.dpanels.floors{grid-template-columns:1fr}.matloc-list{grid-template-columns:1fr}}  .credit{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;border-radius:22px;background:linear-gradient(90deg,#1B1E22,#2A2E34);color:#EDEBE4;font-size:11px}
+  .credit .cr-by{letter-spacing:2px;opacity:.7;font-weight:600}
+  .credit .cr-name{font-family:'Georgia',serif;font-style:italic;font-weight:700;font-size:16px;color:#E7B24C;letter-spacing:1px}
+  .credit .cr-dot{opacity:.5}
+  .credit .cr-app{opacity:.85;letter-spacing:.5px}
 </style>
 </head>
 <body>
@@ -421,7 +441,7 @@ function renderMat(){
   $("#reportBtn").onclick=()=>exportReport('pdf',$("#repSize").value);
   $$('.tab[data-b]').forEach(t=>t.onclick=()=>{activeB=t.dataset.b;renderMat();});
   $("#mngB").onclick=buildingManager;
-  $("#foot").innerHTML='ข้อมูล+รูปบันทึกในเบราว์เซอร์นี้ · กด ⋯ → สำรอง เพื่อเก็บไฟล์';
+  $("#foot").innerHTML='ข้อมูล+รูปบันทึกในเบราว์เซอร์นี้ · กด ⋯ → สำรอง เพื่อเก็บไฟล์ &nbsp;·&nbsp; <b style="letter-spacing:2px;color:var(--blue)">DEVELOPED BY KRIT</b>';
 
   const q=sv.trim().toLowerCase();
   let mats=proj.materials.filter(m=>{
@@ -542,6 +562,7 @@ function donutSVG(data,size,thick,center){
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:0 0 auto">${empty?`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#E5E2D8" stroke-width="${thick}"/>`:''}${arcs}${center!=null?`<text x="50%" y="50%" text-anchor="middle" dy="0.35em" font-size="${(size*0.24).toFixed(0)}" font-weight="800" fill="#1B1E22" font-family="Sarabun,sans-serif">${center}</text>`:''}</svg>`;
 }
 function legendHTML(data){return `<div class="legend">${data.map(d=>`<div class="li"><span class="sw" style="background:${d.color}"></span><span>${esc(d.label)}</span><span class="lv">${d.disp!=null?d.disp:num(d.value)}</span></div>`).join('')}</div>`;}
+function creditHTML(){return `<div class="credit"><span class="cr-by">DESIGNED &amp; DEVELOPED BY</span><span class="cr-name">KRIT</span><span class="cr-dot">•</span><span class="cr-app">ระบบวัสดุไซต์งาน</span></div>`;}
 function buildingFloorsPanel(b){
   const order=[],map={};
   proj.materials.forEach(m=>{floorsOf(m,b).forEach(f=>{if(!map[f.name]){map[f.name]=[];order.push(f.name);}map[f.name].push({m,alloc:+f.qty||0,iss:issuedToFloor(m,b,f.name)});});});
@@ -561,10 +582,10 @@ function buildingFloorsPanel(b){
   const matsInB=proj.materials.slice();
   const locList=matsInB.map(m=>`<div class="matloc"><span class="mloc-item">${esc(m.item||'—')}</span><div class="mloc-txt"><div class="mloc-name">${esc(m.desc)}</div>${m.location?`<div class="mloc-where">📍 ${esc(m.location)}</div>`:'<div class="mloc-where" style="color:#B0ABA0">— ยังไม่ระบุตำแหน่ง —</div>'}</div></div>`).join('');
   const summary=`<div class="dpanel navy"><h4>สรุปรายชั้น</h4>
-    <div class="dgrid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">${stat('จำนวนชั้น',sorted.length)}${stat('ครบแล้ว',fDone,'',fDone?'ok':'')}${stat('กำลังเบิก',fPart)}${stat('ยังไม่เริ่ม',fNone,'',fNone?'warn':'')}</div>
-    <div class="legend"><div class="li"><span class="sw" style="background:#3B7A57"></span><span>ครบ (100%)</span></div><div class="li"><span class="sw" style="background:#6E9BC5"></span><span>กำลังเบิก (50–99%)</span></div><div class="li"><span class="sw" style="background:#C9820C"></span><span>เพิ่งเริ่ม (1–49%)</span></div><div class="li"><span class="sw" style="background:#B0ABA0"></span><span>ยังไม่เบิก (0%)</span></div></div>
-    <div style="margin-top:14px;font-weight:800;font-size:13px;border-top:1px solid var(--line);padding-top:12px">📍 วัสดุ & ตำแหน่งที่ใช้</div><div class="matloc-list">${locList}</div></div>`;
-  return `<div class="dpanels">${buildingPanel}${summary}</div>`;
+    <div class="fl-stat-row"><span class="fl-stat">ชั้น <b>${sorted.length}</b></span><span class="fl-stat ok">ครบ <b>${fDone}</b></span><span class="fl-stat mid">กำลังเบิก <b>${fPart}</b></span><span class="fl-stat warn">ยังไม่เริ่ม <b>${fNone}</b></span></div>
+    <div class="legend inline"><span class="li"><span class="sw" style="background:#3B7A57"></span>ครบ</span><span class="li"><span class="sw" style="background:#6E9BC5"></span>กำลังเบิก</span><span class="li"><span class="sw" style="background:#C9820C"></span>เพิ่งเริ่ม</span><span class="li"><span class="sw" style="background:#B0ABA0"></span>ยังไม่เบิก</span></div>
+    <div style="margin-top:10px;font-weight:800;font-size:13px;border-top:1px solid var(--line);padding-top:10px">📍 วัสดุ & ตำแหน่งที่ใช้</div><div class="matloc-list">${locList}</div></div>`;
+  return `<div class="dpanels floors">${buildingPanel}${summary}</div>`;
 }
 
 function renderDash(){
@@ -600,7 +621,7 @@ function dashHTML(sc){
   const catPanel=`<div class="dpanel blue"><h4>สัดส่วนตามหมวดหมู่ (จำนวนรายการ)</h4><div class="donut-wrap">${donutSVG(catData.length?catData:[{value:1,color:'#E5E2D8'}],140,24,activeMats.length)}${legendHTML(catData)}</div></div>`;
   const rankPanel=`<div class="dpanel amber"><h4>วัสดุที่ต้องเร่ง (คืบหน้าน้อยสุด)</h4>${rankAll.length?rankAll.map((x,i)=>`<div class="rank"><span class="rn" style="background:${i<3?'#E23B3B':'#1F3A63'}">${i+1}</span><div style="min-width:0"><div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px">${esc(x.label)}</div><div class="rt"><i style="width:${x.pct}%;background:${i<3?'#E23B3B':'#6E9BC5'}"></i></div><div style="font-size:11px;color:var(--ink-soft);margin-top:2px">เบิก ${num(x.r)}/${num(x.g)}${x.unit?' '+esc(x.unit):''}</div></div><div class="rv">${x.pct}%<br><span style="color:var(--amber)">ขาด ${num(x.rem)}</span></div></div>`).join(''):'<div style="color:var(--green);font-size:13px">🎉 ครบทุกรายการในขอบเขตนี้</div>'}</div>`;
   const floorsPanel=sc!=='*'?buildingFloorsPanel(sc):'';
-  return `<div class="dash">${hero}${kpis}${floorsPanel}<div class="dpanels">${barsPanel}${gaugePanel}</div><div class="dpanels">${catPanel}${rankPanel}</div><div class="dash-src">สร้างโดยระบบวัสดุไซต์งาน${proj.issuer?' · ผู้ออกเอกสาร: '+esc(proj.issuer):''}</div></div>`;
+  return `<div class="dash">${hero}${kpis}${floorsPanel}<div class="dpanels">${barsPanel}${gaugePanel}</div><div class="dpanels">${catPanel}${rankPanel}</div><div class="dash-src">${creditHTML()}</div></div>`;
 }
 function exportChooser(){
   const s=uiSheet(`<h3>ส่งออกหน้ากราฟ</h3><div class="sub">เลือกอาคารที่ต้องการ + รูปแบบ แล้วกดส่งออก</div>
@@ -782,7 +803,7 @@ function reportHTML(){
     ${storeTable}
     ${sect||'<p style="color:#5A6067">ยังไม่มีข้อมูล</p>'}
     <div class="rep-keep" style="display:flex;justify-content:flex-end;margin-top:40px">${issuerBlock()}</div>
-    <div style="margin-top:16px;font-size:11px;color:#9A9A92;text-align:center">สร้างโดยระบบวัสดุไซต์งาน</div></div>`;
+    <div style="margin-top:16px;text-align:center">${creditHTML()}</div></div>`;
 }
 async function renderToCanvas(html){const holder=document.createElement('div');holder.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff';holder.innerHTML=html;document.body.appendChild(holder);await new Promise(r=>setTimeout(r,60));const canvas=await html2canvas(holder,{scale:2,backgroundColor:'#fff',useCORS:true});document.body.removeChild(holder);return canvas;}
 async function addPagedHTML(pdf,html){
@@ -826,6 +847,7 @@ function issueSlipHTML(i){return `<div style="padding:30px 34px;font-family:Sara
     <td style="width:33%">..............................<br>ผู้เบิก<br>(${esc(i.requester||' ')})</td>
     <td style="width:33%">..............................<br>ผู้อนุมัติ<br>(${esc(i.approver||' ')})</td>
     <td style="width:33%">..............................<br>ผู้ออกเอกสาร<br>(${esc(i.issuer||proj.issuer||' ')})</td></tr></table>
+  <div style="margin-top:26px;text-align:center">${creditHTML()}</div>
   ${(i.photos&&i.photos.length)?`<div style="margin-top:22px;font-size:12px;color:#5A6067">📎 แนบเอกสาร ${i.photos.length} หน้า (หน้าถัดไป)</div>`:''}</div>`;}
 async function exportIssuePDF(id){const i=proj.issues.find(x=>x.id===id);if(!i)return;if(typeof html2canvas==='undefined'||typeof window.jspdf==='undefined'){toast('ตัวสร้าง PDF โหลดไม่สำเร็จ');return;}
   toast('กำลังสร้าง PDF ใบเบิก…');try{const {jsPDF}=window.jspdf;const pdf=new jsPDF('p','mm','a4');await addPagedHTML(pdf,issueSlipHTML(i));
