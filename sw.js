@@ -1,5 +1,5 @@
 /* Service worker — network-first สำหรับหน้าเว็บ (index.html) เพื่อให้เห็นเวอร์ชันล่าสุดเสมอเมื่อออนไลน์ */
-const CACHE = 'sitemat-v20';
+const CACHE = 'sitemat-v21';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
