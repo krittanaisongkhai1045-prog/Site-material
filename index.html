@@ -558,7 +558,7 @@ function buildingFloorsPanel(b){
     return `<div class="bld-floor"><div class="bf-fill" style="width:${Math.min(100,avg)}%;background:${color}"></div><div class="bf-label">${esc(fn)}</div><div class="bf-pct" style="color:${color}">${avg}%</div><div class="bf-detail">${chips}</div></div>`;
   }).join('');
   const buildingPanel=`<div class="dpanel"><h4>ภาพตึก อาคาร ${esc(b)} — สถานะรายชั้น</h4><div class="building"><div class="bld-roof">🏢 อาคาร ${esc(b)}</div>${slabs}<div class="bld-ground"></div></div></div>`;
-  const matsInB=proj.materials.filter(m=>target(m,b)>0||issuedTo(m,b)>0||floorsOf(m,b).length);
+  const matsInB=proj.materials.slice();
   const locList=matsInB.map(m=>`<div class="matloc"><span class="mloc-item">${esc(m.item||'—')}</span><div class="mloc-txt"><div class="mloc-name">${esc(m.desc)}</div>${m.location?`<div class="mloc-where">📍 ${esc(m.location)}</div>`:'<div class="mloc-where" style="color:#B0ABA0">— ยังไม่ระบุตำแหน่ง —</div>'}</div></div>`).join('');
   const summary=`<div class="dpanel navy"><h4>สรุปรายชั้น</h4>
     <div class="dgrid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">${stat('จำนวนชั้น',sorted.length)}${stat('ครบแล้ว',fDone,'',fDone?'ok':'')}${stat('กำลังเบิก',fPart)}${stat('ยังไม่เริ่ม',fNone,'',fNone?'warn':'')}</div>
