@@ -209,11 +209,13 @@
   .matloc-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px}
   .matloc .mloc-name{font-size:12px}.matloc .mloc-where{font-size:11px}
   .matloc .mloc-item{font-size:11px;min-width:36px;padding:2px 6px}
-  @media(max-width:640px){.dpanels.floors{grid-template-columns:1fr}.matloc-list{grid-template-columns:1fr}}  .credit{display:inline-flex;align-items:center;gap:9px;padding:7px 16px;border-radius:22px;background:linear-gradient(90deg,#1B1E22,#2A2E34);color:#EDEBE4;font-size:11px}
-  .credit .cr-by{letter-spacing:2px;opacity:.7;font-weight:600}
-  .credit .cr-name{font-family:'Georgia',serif;font-style:italic;font-weight:700;font-size:16px;color:#E7B24C;letter-spacing:1px}
-  .credit .cr-dot{opacity:.5}
-  .credit .cr-app{opacity:.85;letter-spacing:.5px}
+  @media(max-width:640px){.dpanels.floors{grid-template-columns:1fr}.matloc-list{grid-template-columns:1fr}}  .credit{margin:0 auto;border-radius:22px;background:#1B1E22;border-collapse:separate}
+  .credit td{padding:8px 8px;vertical-align:middle;color:#EDEBE4;font-size:11px}
+  .credit td:first-child{padding-left:18px}
+  .credit td:last-child{padding-right:18px}
+  .credit .cr-by{letter-spacing:2px;color:#9AA0A8;font-weight:700}
+  .credit .cr-name{font-weight:800;font-size:17px;color:#E7B24C;letter-spacing:2px}
+  .credit .cr-app{color:#C7CAD0;letter-spacing:.5px}
 </style>
 </head>
 <body>
@@ -562,7 +564,7 @@ function donutSVG(data,size,thick,center){
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="flex:0 0 auto">${empty?`<circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#E5E2D8" stroke-width="${thick}"/>`:''}${arcs}${center!=null?`<text x="50%" y="50%" text-anchor="middle" dy="0.35em" font-size="${(size*0.24).toFixed(0)}" font-weight="800" fill="#1B1E22" font-family="Sarabun,sans-serif">${center}</text>`:''}</svg>`;
 }
 function legendHTML(data){return `<div class="legend">${data.map(d=>`<div class="li"><span class="sw" style="background:${d.color}"></span><span>${esc(d.label)}</span><span class="lv">${d.disp!=null?d.disp:num(d.value)}</span></div>`).join('')}</div>`;}
-function creditHTML(){return `<div class="credit"><span class="cr-by">DESIGNED &amp; DEVELOPED BY</span><span class="cr-name">KRIT</span><span class="cr-dot">•</span><span class="cr-app">ระบบวัสดุไซต์งาน</span></div>`;}
+function creditHTML(){return `<table class="credit" cellpadding="0" cellspacing="0"><tr><td class="cr-by">DESIGNED &amp; DEVELOPED BY</td><td class="cr-name">KRIT</td><td class="cr-app">ระบบวัสดุไซต์งาน</td></tr></table>`;}
 function buildingFloorsPanel(b){
   const order=[],map={};
   proj.materials.forEach(m=>{floorsOf(m,b).forEach(f=>{if(!map[f.name]){map[f.name]=[];order.push(f.name);}map[f.name].push({m,alloc:+f.qty||0,iss:issuedToFloor(m,b,f.name)});});});
@@ -652,8 +654,8 @@ async function exportDashMulti(scopes,size,kind){
       toast('บันทึกรูป '+scopes.length+' ไฟล์แล้ว');return;
     }
     const {jsPDF}=window.jspdf;const fmt=(size==='a3')?'a3':'a4';const pdf=new jsPDF('p','mm',fmt);
-    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),mg=8,availW=pw-2*mg,availH=ph-2*mg;
-    for(let i=0;i<scopes.length;i++){const canvas=await renderDashCanvas(scopes[i]);const aspect=canvas.width/canvas.height;let w=availW,h=w/aspect;if(h>availH){h=availH;w=h*aspect;}if(i>0)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',(pw-w)/2,mg,w,h);}
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),mg=6,availW=pw-2*mg,availH=ph-2*mg;
+    for(let i=0;i<scopes.length;i++){const canvas=await renderDashCanvas(scopes[i]);const aspect=canvas.width/canvas.height;let w=availW,h=w/aspect;if(h>availH){h=availH;w=h*aspect;}if(i>0)pdf.addPage();pdf.addImage(canvas.toDataURL('image/jpeg',0.94),'JPEG',(pw-w)/2,(ph-h)/2,w,h);}
     pdf.save(`กราฟ-${(proj.name||'โครงการ')}-${scopes.length}อาคาร-${fmt.toUpperCase()}-${today()}.pdf`);toast('บันทึก PDF ('+fmt.toUpperCase()+') แล้ว');
   }catch(e){toast('ส่งออกไม่สำเร็จ');console.error(e);}
 }
