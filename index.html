@@ -215,7 +215,7 @@
   .credit td:last-child{padding-right:18px}
   .credit .cr-by{letter-spacing:2px;color:#9AA0A8;font-weight:700}
   .credit .cr-name{font-weight:800;font-size:17px;color:#E7B24C;letter-spacing:2px}
-  .credit .cr-app{color:#C7CAD0;letter-spacing:.5px}
+  .credit .cr-app{color:#C7CAD0;letter-spacing:.5px}  .storebar .pill.order{background:#F7E1DB;color:var(--red);font-weight:700}
 </style>
 </head>
 <body>
@@ -390,6 +390,8 @@ function bufPct(m){return (m&&m.bufferPct!=null)?+m.bufferPct:0}
 function matTotal(m){return +(m&&m.total)||0}
 function bufReserve(m){return matTotal(m)*bufPct(m)/100}
 function distributable(m){return Math.max(0,matTotal(m)-bufReserve(m))}
+function needQty(m){return allocated(m)*(1+bufPct(m)/100);}
+function toOrder(m){return needQty(m)-matTotal(m);}
 function allocated(m){return proj.buildings.reduce((s,b)=>s+target(m,b),0)}
 function overAlloc(m){return matTotal(m)>0 && allocated(m)>distributable(m)+1e-9}
 function floorsOf(m,b){return (m.floors&&m.floors[b])?m.floors[b]:[]}
@@ -477,7 +479,7 @@ function allocBar(m){
   const shades=shadeCodes(m);
   const shadeLine=shades.length?`<div class="sb-line shade">${shades.map(sc=>`<span class="shade-pill">${esc(sc)} · เหลือ <b class="num">${num(leftByShade(m,sc))}</b> <span style="opacity:.6">(รับ ${num(recvByShade(m,sc))}/เบิก ${num(issuedByShade(m,sc))})</span></span>`).join('')}</div>`:'';
   return `<div class="storebar">
-    ${hasQuota?`<div class="sb-line"><span>รวมสั่ง <b class="num">${num(matTotal(m))}</b></span><span>เผื่อ ${num(bufPct(m))}% <b class="num">${num(bufReserve(m))}</b></span><span>แจกได้ <b class="num">${num(dist)}</b></span><span class="${over?'ov':''}">จัดสรร <b class="num">${num(alloc)}</b>${over?' ⚠เกินโควตา':''}</span></div>`:''}
+    ${hasQuota?`<div class="sb-line"><span>รวมสั่ง <b class="num">${num(matTotal(m))}</b></span><span>เผื่อ ${num(bufPct(m))}% <b class="num">${num(bufReserve(m))}</b></span><span>แจกได้ <b class="num">${num(dist)}</b></span><span class="${over?'ov':''}">จัดสรร <b class="num">${num(alloc)}</b>${over?' ⚠เกินโควตา':''}</span>${toOrder(m)>0.5?`<span class="pill order">🛒 ต้องสั่งเพิ่ม <b class="num">${num(Math.ceil(toOrder(m)))}</b> ${esc(m.unit||'')}</span>`:''}</div>`:''}
     <div class="sb-line">
       <span class="pill in">📥 รับเข้าสโตร์ <b class="num">${num(recv)}</b></span>
       <span class="pill out">📤 เบิกออกรวม <b class="num">${num(iss)}</b></span>
@@ -790,9 +792,9 @@ function reportHTML(){
   const td=(v,r,extra)=>`<td style="padding:5px 7px;border:1px solid #DAD7CD;${r?'text-align:right;':''}${extra||''}">${v}</td>`;
   const storeMats=proj.materials.filter(m=>recvTotal(m)>0||issuedTotal(m)>0||matTotal(m)>0);
   const storeTable=storeMats.length?`<h3 style="margin:6px 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">📦 สรุปสโตร์กลาง</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">${th('Item')}${th('รายการ')}${th('ตำแหน่งที่ใช้')}${th('หมวด')}${th('รวมสั่ง',1)}${th('รับเข้า',1)}${th('เบิกออก',1)}${th('คงเหลือสโตร์',1)}${th('เผื่อ%',1)}${th('หลังกันเผื่อ',1)}</tr></thead><tbody>
-    ${storeMats.map(m=>{const l=storeLeft(m),u=usableLeft(m);return `<tr>${td(esc(m.item||''))}${td(esc(m.desc))}${td(m.location?esc(m.location):'<span style="color:#B0ABA0">—</span>')}${td(esc(m.category||''))}${td(matTotal(m)?num(matTotal(m)):'-',1)}${td(num(recvTotal(m)),1)}${td(num(issuedTotal(m)),1)}${td(num(l),1,'color:'+(l<0?'#B4462F':'#3B7A57')+';font-weight:700')}${td(bufPct(m)?num(bufPct(m))+'%':'-',1)}${td(num(u),1,'color:'+(u<0?'#B4462F':'#1F4E79')+';font-weight:700')}</tr>`;}).join('')}</tbody></table>
-    <div style="font-size:10px;color:#8A8A82;margin-top:4px">* หลังกันเผื่อ = คงเหลือสโตร์ − ยอดเผื่อเก็บงาน (เผื่อ% ของยอดรวมสั่ง)</div>`:'';
+    <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">${th('Item')}${th('รายการ')}${th('ตำแหน่งที่ใช้')}${th('หมวด')}${th('รวมสั่ง',1)}${th('จัดสรร',1)}${th('ต้องสั่งเพิ่ม',1)}${th('รับเข้า',1)}${th('เบิกออก',1)}${th('คงเหลือสโตร์',1)}${th('หลังกันเผื่อ',1)}</tr></thead><tbody>
+    ${storeMats.map(m=>{const l=storeLeft(m),u=usableLeft(m),ord=toOrder(m);return `<tr>${td(esc(m.item||''))}${td(esc(m.desc))}${td(m.location?esc(m.location):'<span style="color:#B0ABA0">—</span>')}${td(esc(m.category||''))}${td(matTotal(m)?num(matTotal(m)):'-',1)}${td(num(allocated(m)),1)}${td(ord>0.5?num(Math.ceil(ord)):'✓',1,'color:'+(ord>0.5?'#B4462F':'#3B7A57')+';font-weight:700')}${td(num(recvTotal(m)),1)}${td(num(issuedTotal(m)),1)}${td(num(l),1,'color:'+(l<0?'#B4462F':'#3B7A57')+';font-weight:700')}${td(num(u),1,'color:'+(u<0?'#B4462F':'#1F4E79')+';font-weight:700')}</tr>`;}).join('')}</tbody></table>
+    <div style="font-size:10px;color:#8A8A82;margin-top:4px">* ต้องสั่งเพิ่ม = (จัดสรร + เผื่อ%) − ยอดรวมสั่ง (ปัดขึ้น, ✓ = สั่งพอแล้ว) · หลังกันเผื่อ = คงเหลือสโตร์ − ยอดเผื่อเก็บงาน</div>`:'';
   const sect=Object.keys(byB).map(b=>{const rs=byB[b];const bt=rs.reduce((s,r)=>s+r.t,0),br=rs.reduce((s,r)=>s+r.iss,0);
     return `<h3 style="margin:16px 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">อาคาร ${esc(b)} <span style="font-weight:400;font-size:12px;color:#5A6067">— เบิกไปแล้ว ${num(br)} / จัดสรร ${num(bt)}</span></h3>
       <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">
@@ -859,7 +861,7 @@ async function exportIssuePDF(id){const i=proj.issues.find(x=>x.id===id);if(!i)r
 
 /* backup / import */
 async function backupJSON(){toast('กำลังรวบรวมรูป…');const ids=[];proj.materials.forEach(m=>(m.receipts||[]).forEach(r=>r.photo&&ids.push(r.id)));(proj.issues||[]).forEach(i=>(i.photos||[]).forEach(p=>ids.push(p)));const photos=await P.many(ids);dl(new Blob([JSON.stringify({proj,photos,at:new Date().toISOString()})],{type:'application/json'}),`backup-${(proj.name||'โครงการ')}-${today()}.json`);toast('สำรองข้อมูลแล้ว');}
-function exportCSV(){const head=['อาคาร','หมวดหมู่','Item','Description','ตำแหน่งที่ใช้','เฉด','หน่วย','รวมสั่ง','เผื่อ%','แจกได้','จัดสรร','เบิกไปแล้ว','คงเหลือต้องเบิก','รับเข้าสโตร์','เบิกออกรวม','คงเหลือสโตร์','หลังกันเผื่อ'];const rows=[];proj.materials.forEach(m=>proj.buildings.forEach(b=>{const bt=baseTarget(m,b);if(bt>0||issuedTo(m,b)>0)rows.push([b,m.category||'',m.item,m.desc,m.location||'',(m.shades||[]).map(s=>s.code+':'+s.qty).join(' '),m.unit,matTotal(m),bufPct(m),distributable(m),bt,issuedTo(m,b),toIssue(m,b),recvTotal(m),issuedTotal(m),storeLeft(m),usableLeft(m)]);}));dl(new Blob(['\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}),`สรุป-${(proj.name||'โครงการ')}-${today()}.csv`);toast('ส่งออก CSV แล้ว');}
+function exportCSV(){const head=['อาคาร','หมวดหมู่','Item','Description','ตำแหน่งที่ใช้','เฉด','หน่วย','รวมสั่ง','เผื่อ%','จัดสรร','ต้องสั่งเพิ่ม','แจกได้','เบิกไปแล้ว','คงเหลือต้องเบิก','รับเข้าสโตร์','เบิกออกรวม','คงเหลือสโตร์','หลังกันเผื่อ'];const rows=[];proj.materials.forEach(m=>proj.buildings.forEach(b=>{const bt=baseTarget(m,b);if(bt>0||issuedTo(m,b)>0)rows.push([b,m.category||'',m.item,m.desc,m.location||'',(m.shades||[]).map(s=>s.code+':'+s.qty).join(' '),m.unit,matTotal(m),bufPct(m),allocated(m),Math.max(0,Math.ceil(toOrder(m))),distributable(m),issuedTo(m,b),toIssue(m,b),recvTotal(m),issuedTotal(m),storeLeft(m),usableLeft(m)]);}));dl(new Blob(['\uFEFF'+[head,...rows].map(r=>r.map(c=>`"${String(c??'').replace(/"/g,'""')}"`).join(',')).join('\n')],{type:'text/csv'}),`สรุป-${(proj.name||'โครงการ')}-${today()}.csv`);toast('ส่งออก CSV แล้ว');}
 function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 function restore(file){const rd=new FileReader();rd.onload=async()=>{try{const o=JSON.parse(rd.result);if(!o.proj||!Array.isArray(o.proj.materials))throw 0;if(!await confirmModal('กู้คืนข้อมูล','ทับข้อมูลโครงการปัจจุบันทั้งหมด?','กู้คืน',true))return;proj=o.proj;if(o.photos)for(const id in o.photos)await P.set(id,o.photos[id]);const p=meta.projects.find(x=>x.id===meta.currentId);if(p)p.name=proj.name||p.name;logEv('new','กู้คืนข้อมูล');await saveProj();await saveMeta();render();toast('กู้คืนแล้ว');}catch(e){toast('ไฟล์ไม่ถูกต้อง')}};rd.readAsText(file);}
 
