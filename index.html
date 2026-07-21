@@ -391,7 +391,7 @@ function matTotal(m){return +(m&&m.total)||0}
 function bufReserve(m){return matTotal(m)*bufPct(m)/100}
 function distributable(m){return Math.max(0,matTotal(m)-bufReserve(m))}
 function needQty(m){return allocated(m)*(1+bufPct(m)/100);}
-function toOrder(m){return needQty(m)-matTotal(m);}
+function toOrder(m){return needQty(m)-matTotal(m)-recvTotal(m);}
 function allocated(m){return proj.buildings.reduce((s,b)=>s+target(m,b),0)}
 function overAlloc(m){return matTotal(m)>0 && allocated(m)>distributable(m)+1e-9}
 function floorsOf(m,b){return (m.floors&&m.floors[b])?m.floors[b]:[]}
@@ -794,7 +794,7 @@ function reportHTML(){
   const storeTable=storeMats.length?`<h3 style="margin:6px 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">📦 สรุปสโตร์กลาง</h3>
     <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">${th('Item')}${th('รายการ')}${th('ตำแหน่งที่ใช้')}${th('หมวด')}${th('รวมสั่ง',1)}${th('จัดสรร',1)}${th('ต้องสั่งเพิ่ม',1)}${th('รับเข้า',1)}${th('เบิกออก',1)}${th('คงเหลือสโตร์',1)}${th('หลังกันเผื่อ',1)}</tr></thead><tbody>
     ${storeMats.map(m=>{const l=storeLeft(m),u=usableLeft(m),ord=toOrder(m);return `<tr>${td(esc(m.item||''))}${td(esc(m.desc))}${td(m.location?esc(m.location):'<span style="color:#B0ABA0">—</span>')}${td(esc(m.category||''))}${td(matTotal(m)?num(matTotal(m)):'-',1)}${td(num(allocated(m)),1)}${td(ord>0.5?num(Math.ceil(ord)):'✓',1,'color:'+(ord>0.5?'#B4462F':'#3B7A57')+';font-weight:700')}${td(num(recvTotal(m)),1)}${td(num(issuedTotal(m)),1)}${td(num(l),1,'color:'+(l<0?'#B4462F':'#3B7A57')+';font-weight:700')}${td(num(u),1,'color:'+(u<0?'#B4462F':'#1F4E79')+';font-weight:700')}</tr>`;}).join('')}</tbody></table>
-    <div style="font-size:10px;color:#8A8A82;margin-top:4px">* ต้องสั่งเพิ่ม = (จัดสรร + เผื่อ%) − ยอดรวมสั่ง (ปัดขึ้น, ✓ = สั่งพอแล้ว) · หลังกันเผื่อ = คงเหลือสโตร์ − ยอดเผื่อเก็บงาน</div>`:'';
+    <div style="font-size:10px;color:#8A8A82;margin-top:4px">* ต้องสั่งเพิ่ม = (จัดสรร + เผื่อ%) − ยอดรวมสั่ง − รับเข้าแล้ว (ปัดขึ้น, ✓ = สั่งพอแล้ว) · หลังกันเผื่อ = คงเหลือสโตร์ − ยอดเผื่อเก็บงาน</div>`:'';
   const sect=Object.keys(byB).map(b=>{const rs=byB[b];const bt=rs.reduce((s,r)=>s+r.t,0),br=rs.reduce((s,r)=>s+r.iss,0);
     return `<h3 style="margin:16px 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">อาคาร ${esc(b)} <span style="font-weight:400;font-size:12px;color:#5A6067">— เบิกไปแล้ว ${num(br)} / จัดสรร ${num(bt)}</span></h3>
       <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">
