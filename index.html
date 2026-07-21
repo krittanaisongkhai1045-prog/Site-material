@@ -800,10 +800,10 @@ function reportHTML(){
     ${storeMats.map(m=>{const l=storeLeft(m),u=usableLeft(m),ord=toOrder(m);return `<tr>${td(esc(m.item||''))}${td(esc(m.desc))}${td(m.location?esc(m.location):'<span style="color:#B0ABA0">—</span>')}${td(esc(m.category||''))}${td(matTotal(m)?num(matTotal(m)):'-',1)}${td(num(allocated(m)),1)}${td(ord>0.5?num(Math.ceil(ord)):'✓',1,'color:'+(ord>0.5?'#B4462F':'#3B7A57')+';font-weight:700')}${td(num(recvTotal(m)),1)}${td(num(issuedTotal(m)),1)}${td(num(l),1,'color:'+(l<0?'#B4462F':'#3B7A57')+';font-weight:700')}${td(num(u),1,'color:'+(u<0?'#B4462F':'#1F4E79')+';font-weight:700')}</tr>`;}).join('')}</tbody></table>
     <div style="font-size:10px;color:#8A8A82;margin-top:4px">* ต้องสั่งเพิ่ม = ((จัดสรร + เผื่อ%) − เบิกออก) − (ยอดรวมสั่ง − รับเข้าแล้ว) (ปัดขึ้น, ✓ = สั่งพอแล้ว) · หลังกันเผื่อ = คงเหลือสโตร์ − ยอดเผื่อเก็บงาน</div>`:'';
   const lotMats=storeMats.filter(m=>toOrder(m)>0.5||lot3(m)>0);
-  const lotTable=lotMats.length?`<h3 style="margin:18px 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">🛒 สรุปยอดสั่งจริง (เทียบ LOT 3)</h3>
+  const lotTable=lotMats.length?`<div class="page-break"></div><div class="rep-keep"><h3 style="margin:4px 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">🛒 สรุปยอดสั่งจริง (เทียบ LOT 3)</h3>
     <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">${th('Item')}${th('รายการ')}${th('ต้องสั่งเพิ่ม',1)}${th('LOT 3',1)}${th('ยอดสั่งจริง',1)}${th('ใช้ยอด')}</tr></thead><tbody>
     ${lotMats.map(m=>{const need=Math.max(0,Math.ceil(toOrder(m))),l3=lot3(m),fin=Math.max(need,l3),useL3=l3>=need&&l3>0;return `<tr>${td(esc(m.item||''))}${td(esc(m.desc))}${td(num(need),1)}${td(l3?num(l3):'-',1)}${td(num(fin),1,'font-weight:800;color:#1F4E79')}${td(useL3?'LOT 3':'ต้องสั่งเพิ่ม',0,'color:'+(useL3?'#3B7A57':'#B4462F')+';font-weight:700')}</tr>`;}).join('')}</tbody></table>
-    <div style="font-size:10px;color:#8A8A82;margin-top:4px">* ยอดสั่งจริง = ค่าที่มากกว่า ระหว่าง "ต้องสั่งเพิ่ม" กับ "LOT 3" (ถ้า LOT 3 ≥ ต้องสั่งเพิ่ม → ใช้ LOT 3, ไม่งั้นใช้ยอดต้องสั่งเพิ่ม)</div>`:'';
+    <div style="font-size:10px;color:#8A8A82;margin-top:4px">* ยอดสั่งจริง = ค่าที่มากกว่า ระหว่าง "ต้องสั่งเพิ่ม" กับ "LOT 3" (ถ้า LOT 3 ≥ ต้องสั่งเพิ่ม → ใช้ LOT 3, ไม่งั้นใช้ยอดต้องสั่งเพิ่ม)</div></div>`:'';
   const sect=Object.keys(byB).map(b=>{const rs=byB[b];const bt=rs.reduce((s,r)=>s+r.t,0),br=rs.reduce((s,r)=>s+r.iss,0);
     return `<div class="rep-keep" style="margin-top:16px"><h3 style="margin:0 0 6px;font-size:15px;border-bottom:2px solid #1B1E22;padding-bottom:4px">อาคาร ${esc(b)} <span style="font-weight:400;font-size:12px;color:#5A6067">— เบิกไปแล้ว ${num(br)} / จัดสรร ${num(bt)}</span></h3>
       <table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#EFEDE6">
@@ -826,6 +826,7 @@ async function addPagedHTML(pdf,html){
   await new Promise(r=>setTimeout(r,60));
   const cw=holder.offsetWidth||794,totalH=holder.offsetHeight,hostTop=holder.getBoundingClientRect().top;
   const atoms=[...holder.querySelectorAll('tr,h3,.rep-keep')].map(el=>{const r=el.getBoundingClientRect();return{top:r.top-hostTop,bottom:r.bottom-hostTop};});
+  const hardBreaks=[...holder.querySelectorAll('.page-break')].map(el=>el.getBoundingClientRect().top-hostTop).filter(t=>t>4);
   const canvas=await html2canvas(holder,{scale:2,backgroundColor:'#fff',useCORS:true});
   document.body.removeChild(holder);
   const pageWmm=pdf.internal.pageSize.getWidth(),pageHmm=pdf.internal.pageSize.getHeight();
@@ -833,7 +834,9 @@ async function addPagedHTML(pdf,html){
   const breaks=[];let y=0,guard=0;
   while(y<totalH-1&&guard++<300){
     let end=Math.min(totalH,y+usableHpx);
-    if(end<totalH){let moved=end;for(const b of atoms){if(b.top<end-0.5&&b.bottom>end+0.5&&b.top>y+8)moved=Math.min(moved,b.top);}if(moved>y+8)end=moved;}
+    const hb=hardBreaks.filter(t=>t>y+8&&t<=end).sort((a,b)=>a-b)[0];
+    if(hb!=null){end=hb;}
+    else if(end<totalH){let moved=end;for(const b of atoms){if(b.top<end-0.5&&b.bottom>end+0.5&&b.top>y+8)moved=Math.min(moved,b.top);}if(moved>y+8)end=moved;}
     breaks.push([y,end]);y=end;
   }
   breaks.forEach(([y0,y1],i)=>{
