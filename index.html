@@ -352,6 +352,7 @@ let meta={projects:[],currentId:null,pinHash:null};
 let proj={name:"",issuer:"",buildings:DEF_B.slice(),categories:DEF_CATS.slice(),materials:[],issues:[],log:[]};
 let view='mat',activeB='*',fStatus='all',fSort='def',fCat='*',dashB='*',editId=null,recvId=null,rPhotos=[],iPhotos=[],iExisting=[],editIssueId=null,currentUser=null,ifBuilding='*',ifReq='*',ifSearch='';
 let orderCfg={types:null,showLot3:true,showSqm:true};
+let repCfg={store:true,order:true,building:true};
 const PALETTE=['#E23B3B','#1F3A63','#6E9BC5','#C9820C','#3B7A57','#4FA3A3','#8E6FB0','#B4462F','#5A6067','#C7A33B'];
 function catColor(i){return PALETTE[((i%PALETTE.length)+PALETTE.length)%PALETTE.length];}
 
@@ -449,7 +450,7 @@ function renderMat(){
   $("#search").oninput=()=>renderMat();
   $("#fStatus").onchange=e=>{fStatus=e.target.value;renderMat();};
   $("#fSort").onchange=e=>{fSort=e.target.value;renderMat();};
-  $("#reportBtn").onclick=()=>exportReport('pdf',$("#repSize").value);
+  $("#reportBtn").onclick=()=>reportChooser($("#repSize").value);
   $("#orderCfgBtn").onclick=orderConfigModal;
   $$('.tab[data-b]').forEach(t=>t.onclick=()=>{activeB=t.dataset.b;renderMat();});
   $("#mngB").onclick=buildingManager;
@@ -793,6 +794,21 @@ async function lb(id,cap){const d=await P.get(id);if(!d)return;$("#lbImg").src=d
 
 /* PDF export */
 function issuerBlock(){return `<div style="text-align:right;font-size:13px">ผู้ออกเอกสาร<br><b>${esc(proj.issuer||'____________________')}</b><br><br>ลงชื่อ ..................................................</div>`;}
+function reportChooser(size){
+  const s=uiSheet(`<h3>ออกรายงาน PDF</h3><div class="sub">เลือกตารางที่จะให้อยู่ในรายงาน + ขนาดกระดาษ</div>
+    <div class="exp-row"><label><input type="checkbox" id="rc_store" ${repCfg.store?'checked':''}> 📦 สรุปสโตร์กลาง (รวมสั่ง/รับเข้า/เบิก/คงเหลือ/ต้องสั่ง)</label></div>
+    <div class="exp-row"><label><input type="checkbox" id="rc_order" ${repCfg.order?'checked':''}> 🛒 สรุปยอดที่ต้องสั่ง (ตั้งค่า TYPE/ตร.ม./LOT3 ที่ปุ่ม "ยอดสั่ง")</label></div>
+    <div class="exp-row"><label><input type="checkbox" id="rc_bld" ${repCfg.building?'checked':''}> 🏢 ตารางแยกรายอาคาร (จัดสรร/เบิกไปแล้ว/คงเหลือต้องเบิก)</label></div>
+    <div style="font-weight:800;font-size:13px;margin:12px 0 6px;border-top:1px solid var(--line);padding-top:10px">ขนาดกระดาษ</div>
+    <div class="exp-row"><label><input type="radio" name="rc_sz" value="a4" ${size!=='a3'?'checked':''}> A4</label> &nbsp; <label><input type="radio" name="rc_sz" value="a3" ${size==='a3'?'checked':''}> A3</label></div>
+    <div class="sheet-actions"><button class="btn ghost" data-close>ยกเลิก</button><button class="btn solid" id="rc_go">📕 ออก PDF</button></div>`);
+  s.querySelector('#rc_go').onclick=()=>{
+    repCfg.store=s.querySelector('#rc_store').checked;repCfg.order=s.querySelector('#rc_order').checked;repCfg.building=s.querySelector('#rc_bld').checked;
+    if(!repCfg.store&&!repCfg.order&&!repCfg.building){toast('เลือกอย่างน้อย 1 ตาราง');return;}
+    const sz=s.querySelector('input[name="rc_sz"]:checked').value;s.remove();exportReport('pdf',sz);
+  };
+  s.querySelector('[data-close]').onclick=()=>s.remove();s.onclick=e=>{if(e.target===s)s.remove();};
+}
 function orderConfigModal(){
   const mats=proj.materials.slice();
   const sel=orderCfg.types;
@@ -849,9 +865,9 @@ function reportHTML(){
     <div class="rep-keep" style="display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #1B1E22;padding-bottom:10px">
       <div><div style="font-size:12px;letter-spacing:3px;color:#5A6067">รายงานสรุปวัสดุ${activeB==='*'?'':' — อาคาร '+esc(activeB)}</div><div style="font-size:22px;font-weight:800">${esc(proj.name||'โครงการ')}</div></div>
       <div style="text-align:right;font-size:12px;color:#5A6067">พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}<br>ความคืบหน้ารวม <b style="color:#1B1E22;font-size:15px">${pct}%</b></div></div>
-    ${storeTable}
-    ${lotTable}
-    ${sect||'<p style="color:#5A6067">ยังไม่มีข้อมูล</p>'}
+    ${repCfg.store?storeTable:''}
+    ${repCfg.order?lotTable:''}
+    ${repCfg.building?(sect||'<p style="color:#5A6067">ยังไม่มีข้อมูล</p>'):''}
     <div class="rep-keep" style="display:flex;justify-content:flex-end;margin-top:40px">${issuerBlock()}</div>
     <div style="margin-top:16px;text-align:center">${creditHTML()}</div></div>`;
 }
