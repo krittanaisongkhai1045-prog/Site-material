@@ -827,24 +827,29 @@ async function addPagedHTML(pdf,html){
   const cw=holder.offsetWidth||794,totalH=holder.offsetHeight,hostTop=holder.getBoundingClientRect().top;
   const atoms=[...holder.querySelectorAll('tr,h3,.rep-keep')].map(el=>{const r=el.getBoundingClientRect();return{top:r.top-hostTop,bottom:r.bottom-hostTop};});
   const hardBreaks=[...holder.querySelectorAll('.page-break')].map(el=>el.getBoundingClientRect().top-hostTop).filter(t=>t>4);
+  const tables=[...holder.querySelectorAll('table')].map(t=>{const r=t.getBoundingClientRect();const thead=t.querySelector('thead');let h=null;if(thead){const hr=thead.getBoundingClientRect();h={top:hr.top-hostTop,bottom:hr.bottom-hostTop};}return{top:r.top-hostTop,bottom:r.bottom-hostTop,head:h};}).filter(t=>t.head);
+  const headerFor=yPos=>{for(const t of tables){if(yPos>t.head.bottom+1&&yPos<t.bottom-1)return t;}return null;};
   const canvas=await html2canvas(holder,{scale:2,backgroundColor:'#fff',useCORS:true});
   document.body.removeChild(holder);
   const pageWmm=pdf.internal.pageSize.getWidth(),pageHmm=pdf.internal.pageSize.getHeight();
   const S=canvas.width/cw,pxPerMM=cw/pageWmm,topM=6,usableHpx=(pageHmm-topM*2)*pxPerMM;
   const breaks=[];let y=0,guard=0;
-  while(y<totalH-1&&guard++<300){
-    let end=Math.min(totalH,y+usableHpx);
+  while(y<totalH-1&&guard++<400){
+    const hdr=headerFor(y);const headPx=hdr?(hdr.head.bottom-hdr.head.top):0;
+    let end=Math.min(totalH,y+(usableHpx-headPx));
     const hb=hardBreaks.filter(t=>t>y+8&&t<=end).sort((a,b)=>a-b)[0];
     if(hb!=null){end=hb;}
     else if(end<totalH){let moved=end;for(const b of atoms){if(b.top<end-0.5&&b.bottom>end+0.5&&b.top>y+8)moved=Math.min(moved,b.top);}if(moved>y+8)end=moved;}
-    breaks.push([y,end]);y=end;
+    breaks.push([y,end,hdr]);y=end;
   }
-  breaks.forEach(([y0,y1],i)=>{
+  breaks.forEach(([y0,y1,hdr],i)=>{
+    if(i>0)pdf.addPage();
+    let cursor=topM;
+    if(hdr){const hh=hdr.head.bottom-hdr.head.top,hp=Math.max(1,Math.round(hh*S));const hc=document.createElement('canvas');hc.width=canvas.width;hc.height=hp;hc.getContext('2d').drawImage(canvas,0,Math.round(hdr.head.top*S),canvas.width,hp,0,0,canvas.width,hp);pdf.addImage(hc.toDataURL('image/jpeg',0.92),'JPEG',0,cursor,pageWmm,hh/pxPerMM);cursor+=hh/pxPerMM;}
     const shPx=Math.max(1,Math.round((y1-y0)*S));
     const sc=document.createElement('canvas');sc.width=canvas.width;sc.height=shPx;
     sc.getContext('2d').drawImage(canvas,0,Math.round(y0*S),canvas.width,shPx,0,0,canvas.width,shPx);
-    if(i>0)pdf.addPage();
-    pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,topM,pageWmm,(y1-y0)/pxPerMM);
+    pdf.addImage(sc.toDataURL('image/jpeg',0.92),'JPEG',0,cursor,pageWmm,(y1-y0)/pxPerMM);
   });
 }
 function canvasToPDF(pdf,canvas){const pw=210,ph=297,iw=pw,ih=canvas.height*pw/canvas.width,img=canvas.toDataURL('image/jpeg',0.92);let left=ih,pos=0;pdf.addImage(img,'JPEG',0,pos,iw,ih);left-=ph;while(left>0){pos-=ph;pdf.addPage();pdf.addImage(img,'JPEG',0,pos,iw,ih);left-=ph;}}
